@@ -1,6 +1,8 @@
 #[compute]
 #version 450
 
+#extension GL_EXT_shader_atomic_float : enable
+
 
 //to add:
 //sleeping ... ?
@@ -72,6 +74,15 @@ layout(set = 0, binding = 5, std430) restrict buffer Params{
 layout(rgba32f, binding = 6) uniform image2D boid_data;
 
 
+//holds first / length
+layout(set = 0, binding = 7, std430) restrict buffer Health{
+	float data[];
+} health;
+
+//layout(set = 0, binding = 8, std430) restrict buffer ToDelete{
+//	int data[];
+//} to_delete;
+
 
 //function prototypes
 void binning_pass();
@@ -79,6 +90,7 @@ void boid_physics_pass();
 void loop_over_bin(int);
 void boid_loop_interior(int);
 int get_bindex();
+void storeImage();
 
 
 
@@ -104,18 +116,29 @@ void main() {
 	if (index >= params.num_boids){
 		return;
 	}
+	if (health.data[index] <= 0){
+		
+		storeImage();
+
+		return;
+	}
 
 
 
-	if (params.pass_number == 0.0)
+	if (params.pass_number == 0.0){
 		binning_pass();
+	}
 	else if(params.pass_number == 1.0)
 		boid_physics_pass();
-	
+
+		
+
 	
 }
 
 void boid_physics_pass() {
+
+
 
 	vec2 position = boid_pos.data[index];
 	vec2 velocity = boid_vel.data[index];
@@ -136,10 +159,7 @@ void boid_physics_pass() {
 	//bool kicker = velocity.length() >= wakeup cutoff
 
 
-	//for(int i = 0; i < params.num_boids; i++){
-
-	//	boid_loop_interior(i);
-	//}
+	
 
 	int bindex = get_bindex();
 	int[9] neighborhood = {-1, 0, 1, int(-params.bin_w - 1), int(-params.bin_w), int(-params.bin_w + 1), int(params.bin_w - 1), int(params.bin_w), int(params.bin_w + 1)};
@@ -211,11 +231,7 @@ void boid_physics_pass() {
 	}
 
 
-	//apply max_vel -> doesnt seem necessary
-	//if(length(velocity) > params.max_vel)
-	//	velocity = normalize(velocity) * params.max_vel;
 	
-
 
 	position += velocity * params.delta_time;
 	
@@ -224,12 +240,7 @@ void boid_physics_pass() {
 	boid_pos.data[index] = position;
 
 
-	int img_size_int = int(params.image_size);
-	ivec2 pixel_pos = ivec2(index % img_size_int, index / img_size_int);
-	
-	imageStore(boid_data, pixel_pos, vec4(position.x, position.y, velocity.x, velocity.y));
-
-
+	storeImage();
 }
 
 
@@ -266,6 +277,10 @@ void boid_loop_interior(int i){
 				//avoid_direction += position - b_pos;
 				avoid_velocity_ave += b_vel;
 
+				atomicAdd(health.data[i], -1 * params.delta_time);
+				//atomicExchange(health.data[i], 0);
+				//health.data[index] = 0;
+
 			}
 
 			average_velocity += b_vel;
@@ -288,7 +303,7 @@ void loop_over_bin(int bindex){
 	while(to_check != -1){
 
 		//kinda wish I had a better solution than this
-		if (to_check >= params.num_boids) {
+		if (to_check >= params.num_boids || health.data[to_check] <=0) {
         	to_check = bin_next.data[to_check];
         	continue;
     	}
@@ -319,10 +334,10 @@ void binning_pass() {
 	if(bindex == -1)
 		return;
 
-
-	int old_head = atomicExchange(bin_mat.data[bindex], index);
-	bin_next.data[index] = old_head;
-
+	if (index < params.num_boids || health.data[index] > 0) {
+		int old_head = atomicExchange(bin_mat.data[bindex], index);
+		bin_next.data[index] = old_head;
+	}
 	return;
 
 }
@@ -344,4 +359,14 @@ int get_bindex(){
 
 	return int(bx + (by * params.bin_w));
 
+}
+
+void storeImage(){
+
+
+	int img_size_int = int(params.image_size);
+	ivec2 pixel_pos = ivec2(index % img_size_int, index / img_size_int);
+	vec2 position = boid_pos.data[index];
+	
+	imageStore(boid_data, pixel_pos, vec4(position.x, position.y, health.data[index], 0));
 }

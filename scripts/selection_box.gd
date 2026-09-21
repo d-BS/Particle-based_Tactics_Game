@@ -87,6 +87,10 @@ func _finalize_selection_gpu():
 	
 	for b in boid_manager.num_boids:
 		
+		
+		if boid_manager.health[b] <= 0:
+			continue
+		
 		curr_boid_pos_vel = boid_manager.boid_pos_active[b]
 		
 		if selectionRect.has_point(Vector2(curr_boid_pos_vel.x, curr_boid_pos_vel.y)):

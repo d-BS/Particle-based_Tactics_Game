@@ -14,8 +14,8 @@ var num_workgroups:int
 #TODO:
 #
 #
-#
-#fix deletion wierdness or at least understand why its happening
+#Resturcture compute shader, and use one texture to store input information,
+#as opposed to ten billion different buffers
 #
 #split boid manager into cpu-focused script and gpu-focused script?
 #I think that may be better than the mess I have now
@@ -59,15 +59,20 @@ var boid_vel:PackedVector2Array = []
 var squad_biases:PackedVector2Array = []
 
 
-#health
-#attack
-#mass
-#move damping here
-#deletion_queue
 
+#plus faction info, ie faction-specific params:
+#damping / other params - mass, max hp
 #elemental alignment
+#faction color
+#	(though individual color should be changed depending on health)
+
+var health:PackedFloat32Array = []
+var health_bytes:PackedByteArray
+#var is_alive:PackedByteArray = []
 
 
+
+#bin-related variables
 
 var bin_dims:Vector2 = Vector2(1500, 1500)
 var bin_offset:Vector2 = -bin_dims * 35 / 5
@@ -80,7 +85,7 @@ var bin_next_bytes:PackedByteArray
 
 
 
-## contains positions of boids, and is actively updated
+## contains positions of boids, and is actively updated from compute shader
 var boid_pos_active:PackedVector4Array = []
 
 ## Each unit's location within the squad structure.
@@ -115,6 +120,7 @@ var avoid_radius:float = 25
 #var max_vel:float = 30.0
 #formerly .5
 var alignment_factor:float = -.7
+
 #formerly -.05
 var cohesion_factor:float = -.05
 #formerly 10, then 15 w old formula, .25 w new
@@ -142,6 +148,9 @@ var params_buffer_0 : RID
 var params_buffer_1 : RID
 var boid_data_buffer : RID
 
+var health_buffer : RID
+#var is_alive_buffer : RID
+
 #uniforms
 var boid_pos_uniform : RDUniform
 var boid_vel_uniform : RDUniform
@@ -152,6 +161,9 @@ var params_uniform_0 : RDUniform
 var params_uniform_1 : RDUniform
 var boid_data_buffer_uniform : RDUniform
 
+var health_uniform : RDUniform
+#var is_alive_uniform : RDUniform
+
 
 
 
@@ -159,9 +171,10 @@ var boid_data_buffer_uniform : RDUniform
 
 var update_squad_bias_uniform:bool = false
 var update_boid_color_tex:bool = false
+var queue_update_health_buffer:bool = false
 
-var boids_to_delete:Array[int] = []
-var max_deletions_per_frame = 5000
+var boids_to_delete:PackedInt32Array = []
+
 
 
 @warning_ignore("unused_signal")
@@ -212,6 +225,10 @@ func _ready():
 	bin_next.fill(-1)
 	bin_next_bytes = bin_next.to_byte_array()
 	bin_next.clear()
+	
+	health.resize(max_boids)
+	health.fill(100)
+	health_bytes = health.to_byte_array()
 	
 	
 	_initial_boid_setup()
@@ -286,7 +303,6 @@ func _process(delta):
 	#excecute any queued actions
 	_update_squad_bias_uniform()
 	_update_boid_colors()
-	_delete_boids()
 	
 	
 
@@ -312,11 +328,11 @@ func _update_boids_gpu(delta):
 	rd.buffer_update(bin_next_buffer, 0, bin_next_bytes.size(), bin_next_bytes)
 	
 	
-	#we update size and velocity buffers here!!!
-	#replace w better func later!
-	_delete_boids_from_buffer()
-	#_update_pos_vel_buffer_vals()
+	#excecute queued actions:
 	
+	#updates any cpu health changes to gpu
+	_delete_boids()
+	_update_health_buffer()
 	
 	
 	uniform_set_0 = rd.uniform_set_create(bindings_0, boid_compute_shader, 0)
@@ -345,7 +361,6 @@ func _update_boids_gpu(delta):
 	rd.compute_list_dispatch(compute_list, num_workgroups, 1, 1)
 	
 	
-	
 	rd.compute_list_end()
 	rd.submit()
 	
@@ -366,7 +381,6 @@ func _update_data_texture():
 	
 	
 	
-	
 	#var end_time = Time.get_ticks_usec()
 	#var total_time = end_time - start_time
 	
@@ -381,6 +395,10 @@ func _update_data_texture():
 	
 	#updates boid_pos_active
 	boid_pos_active = boid_data_image_data.to_vector4_array()
+	
+	#updates health
+	health = rd.buffer_get_data(health_buffer, 0, health_bytes.size()).to_float32_array()
+	
 	
 	
 	#$boid_particles.process_material.set_shader_parameter("boid_data", boid_data_address)
@@ -420,6 +438,10 @@ func _setup_compute_shader():
 	params_buffer_1 = _generate_parameter_buffer(0, 1)
 	params_uniform_1 = _generate_uniform(params_buffer_1, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 5)
 	
+	health_buffer = rd.storage_buffer_create(health_bytes.size(), health_bytes)
+	health_uniform = _generate_uniform(health_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 7)
+	
+		
 	var fmt := RDTextureFormat.new()
 	fmt.width = IMAGE_SIZE
 	fmt.height = IMAGE_SIZE
@@ -443,8 +465,8 @@ func _setup_compute_shader():
 	#boid_data_address = Texture2DRD.new()
 	#boid_data_address.texture_rd_rid = boid_data_buffer
 	
-	bindings_0 = [boid_pos_uniform, boid_vel_uniform, squad_bias_uniform, bin_matrix_uniform, bin_next_uniform, params_uniform_0, boid_data_buffer_uniform]
-	bindings_1 = [boid_pos_uniform, boid_vel_uniform, squad_bias_uniform, bin_matrix_uniform, bin_next_uniform, params_uniform_1, boid_data_buffer_uniform]
+	bindings_0 = [boid_pos_uniform, boid_vel_uniform, squad_bias_uniform, bin_matrix_uniform, bin_next_uniform, params_uniform_0, boid_data_buffer_uniform, health_uniform]
+	bindings_1 = [boid_pos_uniform, boid_vel_uniform, squad_bias_uniform, bin_matrix_uniform, bin_next_uniform, params_uniform_1, boid_data_buffer_uniform, health_uniform]
 	
 func _generate_vec2_buffer(data):
 	var data_buffer_bytes := PackedVector2Array(data).to_byte_array()
@@ -492,27 +514,20 @@ func _exit_tree():
 	_sync_boids_gpu()
 	
 	
-	if boid_data_buffer.is_valid():
-		rd.free_rid(boid_data_buffer)
-	if params_buffer_0.is_valid():
-		rd.free_rid(params_buffer_0)
-	if params_buffer_1.is_valid():
-		rd.free_rid(params_buffer_1)
-	if boid_pos_buffer.is_valid():
-		rd.free_rid(boid_pos_buffer)
-	if boid_vel_buffer.is_valid():
-		rd.free_rid(boid_vel_buffer)
-	if pipeline.is_valid():
-		rd.free_rid(pipeline)
-	if boid_compute_shader.is_valid():
-		rd.free_rid(boid_compute_shader)
-	if squad_bias_buffer.is_valid():
-		rd.free_rid(squad_bias_buffer)
 	
-	if bin_matrix_buffer.is_valid():
-		rd.free_rid(bin_matrix_buffer)
-	if bin_next_buffer.is_valid():
-		rd.free_rid(bin_next_buffer)
+	rd.free_rid(boid_data_buffer)
+	rd.free_rid(params_buffer_0)
+	rd.free_rid(params_buffer_1)
+	rd.free_rid(boid_pos_buffer)
+	rd.free_rid(boid_vel_buffer)
+	rd.free_rid(pipeline)
+	rd.free_rid(boid_compute_shader)
+	rd.free_rid(squad_bias_buffer)
+
+	rd.free_rid(bin_matrix_buffer)
+	rd.free_rid(bin_next_buffer)
+	
+	rd.free_rid(health_buffer)
 	
 	
 	
@@ -668,168 +683,46 @@ func _add_boids(amount:int, _area:Rect2):
 	
 	
 	
-	
-	
 	pass
 
 func queue_delete_boids(selection:Array[int]):
 	
-	for b in selection:
-		
-		boids_to_delete.insert(boids_to_delete.bsearch(b), b)
-		
-	
+	boids_to_delete.append_array(selection)
 	
 	pass
 
 
-## changes num_boids, changes max_boids and tex if necissary, updates relevant uniforms
 func _delete_boids():
 	
-	if(boids_to_delete == []):
-		return
-	
-	for i in boids_to_delete.size():
-		
-		_delete_boid(boids_to_delete[-1])
-		
-		if i + 1 >= max_deletions_per_frame:
-			break
-		
-		boids_to_delete.pop_back()
-		
-	
-	if boids_to_delete == []:
-		#num_boids -= 1
-		pass
-	
-	if num_boids <= 0:
-		num_boids = 1
-	
-	
-	
-	$boid_particles.amount = num_boids
-	
-	
-	queue_update_boid_colors()
-	queue_update_squad_bias_uniform()
-	squads_updated.emit()
-	pass
-
-func _delete_boid(to_delete:int):
-	
-	
-	
-	num_boids -= 1
-	
-	
-	#print("cpu last index: ", num_boids)
-	#print("cpu to_delete:  ", to_delete)
-	
-	#suppose todelete = 4,
-	#and there are a total of 16 boids.
-	#
-	#num_boids - 1 = 16
-	#
-	
-	
-	
-	var to_delete_indeces:Vector2i = squad_indeces[to_delete]
-	var last_active_indeces:Vector2i = squad_indeces[num_boids]
-	
-	_swap_vals(squad_indeces, to_delete, num_boids)
-	_swap_vals(squad_biases, to_delete, num_boids)
-	_swap_vals(boid_colors, to_delete, num_boids)
-	
-	
-	if last_active_indeces.x != -1:
-		squads[last_active_indeces.x].units[last_active_indeces.y] = to_delete
-	
-	if to_delete_indeces.x != -1:
-		squads[to_delete_indeces.x].units[to_delete_indeces.y] = num_boids
-		squads[to_delete_indeces.x].remove_boid(to_delete_indeces.y)
-	
-	
-	
-	
-	
-	
-	#this sets an index to 0,0!!!
-	
-	
-	pass
-
-## Swaps two given indeces in given array/vector/dict/ anything using '[]' operator that is also passed by reference
-func _swap_vals(array: Variant, first:int, second:int):
-	
-	if first == second:
-		return
-	
-	var temp:Variant = array[first]
-	array[first] = array[second]
-	array[second] = temp
-
-
-func _delete_boids_from_buffer():
-	
-	
-	
-	if boids_to_delete == []:
+	if boids_to_delete.is_empty():
 		return
 	
 	
-	var last_index:int = num_boids - 1
-	
-	
-	var pos_swap:PackedVector2Array = rd.buffer_get_data(boid_pos_buffer).to_vector2_array()
-	var vel_swap:PackedVector2Array = rd.buffer_get_data(boid_vel_buffer).to_vector2_array()
-	#var bias_swap:PackedVector2Array = rd.buffer_get_data(squad_bias_buffer).to_vector2_array()
-	
-	
-	for i in boids_to_delete.size():
+	for b in boids_to_delete:
 		
-		var b = boids_to_delete[-(i +1)]
+		if squad_indeces[b].x != -1:
+			squads[squad_indeces[b].x].remove_boid(int(squad_indeces[b].y))
 		
-		#print("gpu last index: ", last_index)
-		#print("gpu to_delete : ", b)
-		
-		
-		if b >= last_index:
-			last_index -= 1
-			continue
-		
-		
-		_swap_vals(pos_swap, b, last_index)
-		_swap_vals(vel_swap, b, last_index)
-		#_swap_vals(bias_swap, b, last_index)
-		
-		
-		
-		if i + 1 >= max_deletions_per_frame:
-			break
-		
-		last_index -= 1
+		health[b] = 0
 		
 		pass
 	
-	
-	var pos_bytes:PackedByteArray = pos_swap.to_byte_array()
-	var vel_bytes:PackedByteArray = vel_swap.to_byte_array()
-	#var bias_bytes:PackedByteArray = bias_swap.to_byte_array()
-	
-	
-	rd.buffer_update(boid_pos_buffer, 0, pos_bytes.size(), pos_bytes)
-	rd.buffer_update(boid_vel_buffer, 0, vel_bytes.size(), vel_bytes)
-	#rd.buffer_update(squad_bias_buffer, 0, bias_bytes.size(), bias_bytes)
-	
-	
+	queue_update_health_buffer = true
 	
 	pass
 
-## change the buffer (once its a single vec4 array) to new values
-func _update_pos_vel_buffer_vals():
+func _update_health_buffer():
+	
+	if !queue_update_health_buffer:
+		return
+	
+	queue_update_health_buffer = false
 	
 	
+	
+	health_bytes = health.to_byte_array()
+	
+	rd.buffer_update(health_buffer, 0, health_bytes.size(), health_bytes)
 	
 	
 	pass

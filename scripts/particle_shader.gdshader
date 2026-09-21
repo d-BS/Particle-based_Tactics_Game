@@ -27,6 +27,13 @@ void process() {
 	COLOR = texelFetch(boid_colors, texel_pos, 0);
 	
 	
+	if(boid_pos.b <= 0.0)
+		COLOR.a = 0.0;
+	else
+		COLOR.a = boid_pos.b / 100.0 +.1;
+	
+		
+	
 	//else if (is_selected[INDEX])
 	//	COLOR = vec4(0.5294118, 0.80784315, 0.92156863, 1);
 	//else

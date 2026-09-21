@@ -24,6 +24,7 @@ func _init(new_units:Array[int], squad_num:int, new_goal:Vector2 = Vector2.INF, 
 	#loops through and lets each unit know where it is in the squad
 	for i in new_units.size():
 		
+		
 		boid_manager.squad_indeces[new_units[i]] = Vector2(squad_num, i)
 		
 		boid_manager.boid_colors[new_units[i]] = new_color
