@@ -30,7 +30,7 @@ void process() {
 	if(boid_pos.b <= 0.0)
 		COLOR.a = 0.0;
 	else
-		COLOR.a = boid_pos.b / 100.0 +.1;
+		COLOR.rgb *= boid_pos.b / 100.0 +.2;
 	
 		
 	

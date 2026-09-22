@@ -88,7 +88,8 @@ func _finalize_selection_gpu():
 	for b in boid_manager.num_boids:
 		
 		
-		if boid_manager.health[b] <= 0:
+		if boid_manager.health[b] <= 0 || \
+			boid_manager.factions[b] % 2 != 0:
 			continue
 		
 		curr_boid_pos_vel = boid_manager.boid_pos_active[b]

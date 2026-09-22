@@ -39,7 +39,6 @@ func _process(_delta: float) -> void:
 		
 		get_tree().root.add_child(scene_instance)
 		get_tree().current_scene = scene_instance
-	
 		
 		
 	

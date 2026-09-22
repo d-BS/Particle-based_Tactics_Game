@@ -74,10 +74,15 @@ layout(set = 0, binding = 5, std430) restrict buffer Params{
 layout(rgba32f, binding = 6) uniform image2D boid_data;
 
 
-//holds first / length
+//holds health of each unit
 layout(set = 0, binding = 7, std430) restrict buffer Health{
 	float data[];
 } health;
+
+//holds faction # of each unit
+layout(set = 0, binding = 8, std430) restrict buffer Faction{
+	int data[];
+} faction;
 
 //layout(set = 0, binding = 8, std430) restrict buffer ToDelete{
 //	int data[];
@@ -107,6 +112,7 @@ vec2 avoid_velocity_ave = vec2(0,0);
 
 vec2 average_velocity = vec2(0,0);
 vec2 average_position = vec2(0,0);
+
 
 
 void main() {
@@ -276,8 +282,12 @@ void boid_loop_interior(int i){
 
 				//avoid_direction += position - b_pos;
 				avoid_velocity_ave += b_vel;
+				
 
-				atomicAdd(health.data[i], -1 * params.delta_time);
+				if(faction.data[index] % 2 != faction.data[i] % 2)
+					atomicAdd(health.data[i], -10 * params.delta_time);
+				//else
+				//	atomicAdd(health.data[i], -.5 * params.delta_time);
 				//atomicExchange(health.data[i], 0);
 				//health.data[index] = 0;
 
@@ -335,6 +345,7 @@ void binning_pass() {
 		return;
 
 	if (index < params.num_boids || health.data[index] > 0) {
+
 		int old_head = atomicExchange(bin_mat.data[bindex], index);
 		bin_next.data[index] = old_head;
 	}

@@ -3,11 +3,7 @@ var DEBUG_LOG = false
 
 ## current number of boids
 var num_boids:int = 250_000
-#current cap: 500_000
 
-## maximum boids that current setup can handle w/o reallocating stuff, 
-## set to nearest multiple of 128
-var max_boids:int
 var num_workgroups:int
 
 
@@ -25,8 +21,7 @@ var num_workgroups:int
 #
 #set camera limits automatically to bin size of level
 #
-#be able to create boids, have boids be killed, etc
-#create faction system for this - no friendly fire, etc
+#create faction system - togglable friendly fire, etc
 #create wall 'faction' for destructable terrain
 #
 #
@@ -49,7 +44,7 @@ var num_workgroups:int
 #
 #Optimizations for later:
 #
-#Convert vec2 arrays to vec2i arrays / int arrays twice as long?
+#Convert applicable vec2 arrays to vec2i arrays / int arrays twice as long?
 #In shader, convert distance to dist^2, reduce normalize, etc
 #
 
@@ -57,6 +52,7 @@ var num_workgroups:int
 var boid_pos:PackedVector2Array = []
 var boid_vel:PackedVector2Array = []
 var squad_biases:PackedVector2Array = []
+var factions:PackedInt32Array = []
 
 
 
@@ -149,7 +145,7 @@ var params_buffer_1 : RID
 var boid_data_buffer : RID
 
 var health_buffer : RID
-#var is_alive_buffer : RID
+var factions_buffer : RID
 
 #uniforms
 var boid_pos_uniform : RDUniform
@@ -162,7 +158,7 @@ var params_uniform_1 : RDUniform
 var boid_data_buffer_uniform : RDUniform
 
 var health_uniform : RDUniform
-#var is_alive_uniform : RDUniform
+var factions_uniform : RDUniform
 
 
 
@@ -181,26 +177,35 @@ var boids_to_delete:PackedInt32Array = []
 signal squads_updated
 
 
+
 func _ready():
 	
+	var num_units = 10_000
+	var num_enemies = 10_000
 	
-	#Engine.time_scale = 10
+	var im_size = int(ceil(sqrt(num_units + num_enemies)))
+	
+	var start_zone:Rect2 = Rect2(0, 0, im_size * 25, im_size * 25)
+	var enemy_zone:Rect2 = Rect2(im_size * 30, 0, im_size * 25, im_size * 25)
+	
+	setup(start_zone, num_units, enemy_zone, num_enemies)
 	
 	#seed(0)
 	
+	pass
+
+
+
+## this function will need to be continually updated as more information needs to be
+## passed between each battle
+func setup(start_zone:Rect2, num_units:int, enemy_zone:Rect2, num_enemies:int):
 	
-	#first multiple of 128 after num_boids
-	max_boids = num_boids + (0 if (num_boids % 128 == 0) else (128 - num_boids % 128))
+	num_boids = num_units + num_enemies
 	
+	num_workgroups = ceil(num_boids / 128.0)
 	
-	@warning_ignore("integer_division")
-	num_workgroups = max_boids / 128
-	
-	#smallest square which will hold max_boids
-	IMAGE_SIZE = int(ceil(sqrt(max_boids)))
-	
-	
-	
+	#smallest square which will hold num_boids
+	IMAGE_SIZE = int(ceil(sqrt(num_boids)))
 	
 	
 	
@@ -209,29 +214,42 @@ func _ready():
 	boid_colors_image = Image.create_empty(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RGBAF)
 	boid_colors_texture = ImageTexture.create_from_image(boid_colors_image)
 	
+	boid_pos.resize(num_boids)
+	boid_vel.resize(num_boids)
 	
-	squad_biases.resize(max_boids)
+	squads = []
+	Squad.boid_manager = self
+	
+	squad_indeces.resize(num_boids)
+	squad_indeces.fill(-Vector2.ONE)
+	
+	squad_biases.resize(num_boids)
 	squad_biases.fill(Vector2.INF)
 	
 	boid_colors.resize(IMAGE_SIZE * IMAGE_SIZE)
-	boid_colors.fill(Color.BLACK)
+	boid_colors.fill(Color.ORANGE_RED)
 	
 	bin_first.resize(bin_dims.x * bin_dims.y)
 	bin_first.fill(-1)
 	bin_first_bytes = bin_first.to_byte_array()
 	bin_first.clear()
 	
-	bin_next.resize(max_boids)
+	bin_next.resize(num_boids)
 	bin_next.fill(-1)
 	bin_next_bytes = bin_next.to_byte_array()
 	bin_next.clear()
 	
-	health.resize(max_boids)
+	health.resize(num_boids)
 	health.fill(100)
 	health_bytes = health.to_byte_array()
 	
+	factions.resize(num_boids)
+	factions.fill(100)
 	
-	_initial_boid_setup()
+	
+	_spawn_boids(num_units, start_zone, 0)
+	_spawn_boids(num_enemies, enemy_zone, 1)
+	
 	queue_update_boid_colors()
 	
 	$boid_particles.amount = num_boids
@@ -257,22 +275,30 @@ func _ready():
 	boid_vel.clear()
 	
 
-## FIX LATER
-func _initial_boid_setup():
+## only call during setup!!
+func _spawn_boids(spawn_num:int, spawn_zone:Rect2, faction:int = 0):
 	
-	boid_pos.resize(max_boids)
-	boid_vel.resize(max_boids)
-	squad_indeces.resize(max_boids)
 	
-	for i in num_boids:
+	
+	var s_size:Vector2 = spawn_zone.size
+	var s_offset:Vector2 = spawn_zone.position
+	
+	var i = _spawn_offset
+	
+	while i < spawn_num + _spawn_offset:
 		
-		boid_pos[i] = Vector2(randf() * IMAGE_SIZE * 50, randf()  * IMAGE_SIZE * 50)
+		boid_pos[i] =   Vector2(randf() * s_size.x + s_offset.x, \
+								randf() * s_size.y + s_offset.y)
 		boid_vel[i] = Vector2.ZERO
-		squad_indeces[i] = Vector2(-1, i)
+		factions[i] = faction
+		
+		i += 1
 	
 	
-	squads = []
-	Squad.boid_manager = self
+	_spawn_offset += spawn_num
+	
+## ignore - this is used for _spawn_boids ONLY
+var _spawn_offset = 0
 
 
 func _process(delta):
@@ -441,6 +467,8 @@ func _setup_compute_shader():
 	health_buffer = rd.storage_buffer_create(health_bytes.size(), health_bytes)
 	health_uniform = _generate_uniform(health_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 7)
 	
+	factions_buffer = _generate_int_array_buffer(factions.to_byte_array())
+	factions_uniform = _generate_uniform(factions_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 8)
 		
 	var fmt := RDTextureFormat.new()
 	fmt.width = IMAGE_SIZE
@@ -465,8 +493,8 @@ func _setup_compute_shader():
 	#boid_data_address = Texture2DRD.new()
 	#boid_data_address.texture_rd_rid = boid_data_buffer
 	
-	bindings_0 = [boid_pos_uniform, boid_vel_uniform, squad_bias_uniform, bin_matrix_uniform, bin_next_uniform, params_uniform_0, boid_data_buffer_uniform, health_uniform]
-	bindings_1 = [boid_pos_uniform, boid_vel_uniform, squad_bias_uniform, bin_matrix_uniform, bin_next_uniform, params_uniform_1, boid_data_buffer_uniform, health_uniform]
+	bindings_0 = [boid_pos_uniform, boid_vel_uniform, squad_bias_uniform, bin_matrix_uniform, bin_next_uniform, params_uniform_0, boid_data_buffer_uniform, health_uniform, factions_uniform]
+	bindings_1 = [boid_pos_uniform, boid_vel_uniform, squad_bias_uniform, bin_matrix_uniform, bin_next_uniform, params_uniform_1, boid_data_buffer_uniform, health_uniform, factions_uniform]
 	
 func _generate_vec2_buffer(data):
 	var data_buffer_bytes := PackedVector2Array(data).to_byte_array()
@@ -529,22 +557,21 @@ func _exit_tree():
 	
 	rd.free_rid(health_buffer)
 	
+	rd.free_rid(factions_buffer)
 	
 	
 	rd.free()
 
 
-func set_selected_bias(new_bias:Vector2):
+func set_selected_bias(new_bias:Vector2, selection:int = selection_squad):
 	
-	if selection_squad == -1:
+	if selection == -1:
 		return
 	
-	squads[selection_squad].set_bias(new_bias)
+	squads[selection].set_bias(new_bias)
 	
 	
 	pass
-
-
 
 
 func select_boids(new_selection:Array[int]):
@@ -650,7 +677,6 @@ func _update_squad_bias_uniform():
 	bindings_1[2] = squad_bias_uniform
 	
 	
-	
 	update_squad_bias_uniform = false
 
 func queue_update_boid_colors():
@@ -674,17 +700,6 @@ func _update_boid_colors():
 	pass
 
 
-## changes num_boids, changes max_boids and tex if necissary, updates relevant uniforms
-## perhaps do this over several frames?
-func _add_boids(amount:int, _area:Rect2):
-	
-	if num_boids + amount > max_boids:
-		amount = max_boids - num_boids
-	
-	
-	
-	pass
-
 func queue_delete_boids(selection:Array[int]):
 	
 	boids_to_delete.append_array(selection)
@@ -707,6 +722,8 @@ func _delete_boids():
 		
 		pass
 	
+	boids_to_delete.clear()
+	
 	queue_update_health_buffer = true
 	
 	pass
@@ -717,8 +734,6 @@ func _update_health_buffer():
 		return
 	
 	queue_update_health_buffer = false
-	
-	
 	
 	health_bytes = health.to_byte_array()
 	

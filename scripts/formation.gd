@@ -21,7 +21,7 @@ func _init(num_units:int) -> void:
 	rows = ceil(row_num)
 	cols = floor(row_num)
 	
-	spacing = Vector2(100, 100)
+	spacing = Vector2(45, 45)
 	
 	pass
 
