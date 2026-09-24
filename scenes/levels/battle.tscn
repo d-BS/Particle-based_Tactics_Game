@@ -1,15 +1,39 @@
 [gd_scene format=3 uid="uid://cwt3634kk1mm3"]
 
-[ext_resource type="Script" uid="uid://blye06w46toic" path="res://scripts/camera_2d.gd" id="1_1b7gj"]
-[ext_resource type="Script" uid="uid://cusqv1q0vl7s7" path="res://scripts/battle.gd" id="1_gcen0"]
+[ext_resource type="Script" uid="uid://blye06w46toic" path="res://scripts/gameplay/camera_2d.gd" id="1_1b7gj"]
+[ext_resource type="Script" uid="uid://cusqv1q0vl7s7" path="res://scripts/gameplay/battle.gd" id="1_gcen0"]
 [ext_resource type="PackedScene" uid="uid://5rmmflo7fnbi" path="res://scenes/levels/boid_compute.tscn" id="1_hfvrr"]
 [ext_resource type="Texture2D" uid="uid://b4ov5nm0tlo3x" path="res://assets/textures/flag.png" id="2_fe5fq"]
-[ext_resource type="Script" uid="uid://236saenw6w3s" path="res://scripts/flag.gd" id="3_hfvrr"]
-[ext_resource type="Script" uid="uid://c03c25r226vyr" path="res://scripts/selection_box.gd" id="4_gcen0"]
+[ext_resource type="Script" uid="uid://c03c25r226vyr" path="res://scripts/ui/selection_box.gd" id="4_gcen0"]
 [ext_resource type="PackedScene" uid="uid://ci3sy6wdpmrne" path="res://scenes/ui/ui_layer.tscn" id="5_fe5fq"]
 
-[node name="Battle" type="Node" unique_id=1119479971]
+[sub_resource type="GDScript" id="GDScript_hfvrr"]
+script/source = "extends Sprite2D
+
+@export var boid_manager:BoidManager
+
+# Called when the node enters the scene tree for the first time.
+func _ready() -> void:
+	pass # Replace with function body.
+
+
+# Called every frame. 'delta' is the elapsed time since the previous frame.
+func _process(_delta: float) -> void:
+	
+	pass
+
+
+#func _unhandled_input(event: InputEvent) -> void:
+	
+
+	
+	
+#	pass
+"
+
+[node name="Battle" type="Node" unique_id=1119479971 node_paths=PackedStringArray("boid_manager")]
 script = ExtResource("1_gcen0")
+boid_manager = NodePath("BoidCompute")
 
 [node name="BoidCompute" parent="." unique_id=57699779 instance=ExtResource("1_hfvrr")]
 
@@ -34,7 +58,7 @@ z_index = 1
 position = Vector2(297, 155)
 texture = ExtResource("2_fe5fq")
 offset = Vector2(30, -37)
-script = ExtResource("3_hfvrr")
+script = SubResource("GDScript_hfvrr")
 boid_manager = NodePath("../BoidCompute")
 
 [node name="SelectionBox" type="Node2D" parent="." unique_id=637214788 node_paths=PackedStringArray("boid_manager")]

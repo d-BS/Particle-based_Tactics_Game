@@ -190,17 +190,6 @@ signal squads_updated
 
 func _ready():
 	
-	var num_units = ceil(num_boids/2)
-	var num_enemies = floor(num_boids/2)
-	
-	var im_size = int(ceil(sqrt(num_units + num_enemies)))
-	
-	var start_zone:Rect2 = Rect2(0, 0, im_size * 25, im_size * 25)
-	var enemy_zone:Rect2 = Rect2(im_size * 30, 0, im_size * 25, im_size * 25)
-	
-	setup(start_zone, num_units, enemy_zone, num_enemies)
-	
-	#seed(0)
 	
 	pass
 
@@ -313,7 +302,7 @@ var _spawn_offset = 0
 
 func _process(delta):
 	
-	
+	delta *= Global.time_scale
 	
 	get_window().title = "Units: " + str(num_boids) + " / FPS: " + str(Engine.get_frames_per_second())
 	

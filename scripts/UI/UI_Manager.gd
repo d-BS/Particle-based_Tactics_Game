@@ -22,21 +22,21 @@ func _process(delta: float) -> void:
 
 func _on_play_button_pressed() -> void:
 	
-	Engine.time_scale = 1
+	Global.time_scale = 1
 	
 	pass # Replace with function body.
 
 
 func _on_ff_button_pressed() -> void:
 	
-	if Engine.time_scale < 8:
-		Engine.time_scale *= 2
+	
+	Global.time_scale *= 2
 	
 	pass # Replace with function body.
 
 
 func _on_pause_button_pressed() -> void:
 	
-	Engine.time_scale = 0
+	Global.time_scale = 0
 	
 	pass # Replace with function body.

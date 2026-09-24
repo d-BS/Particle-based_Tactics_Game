@@ -25,7 +25,7 @@ func _ready() -> void:
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:
 	
-	d_time = delta / Engine.time_scale
+	d_time = delta #/ Engine.time_scale
 	
 	
 	if shift:

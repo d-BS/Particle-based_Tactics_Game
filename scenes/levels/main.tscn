@@ -5,9 +5,9 @@
 [ext_resource type="PackedScene" uid="uid://5rmmflo7fnbi" path="res://scenes/levels/boid_compute.tscn" id="7_85g3d"]
 [ext_resource type="Shader" uid="uid://8t7sid8g3ivm" path="res://scripts/shaders/grass_blades.gdshader" id="7_tipki"]
 [ext_resource type="FastNoiseLite" uid="uid://boyesff6pllks" path="res://assets/textures/grass_noise.tres" id="7_ya4ey"]
-[ext_resource type="Script" uid="uid://yt6x5t61uem7" path="res://scripts/ground.gd" id="8_choun"]
-[ext_resource type="Script" uid="uid://dddidyxpyk44m" path="res://scripts/environment.gd" id="9_85g3d"]
-[ext_resource type="Script" uid="uid://dmwb2h2x865tp" path="res://scripts/ui.gd" id="10_choun"]
+[ext_resource type="Script" uid="uid://yt6x5t61uem7" path="res://scripts/shaders/ground.gd" id="8_choun"]
+[ext_resource type="Script" uid="uid://dddidyxpyk44m" path="res://scripts/shaders/environment.gd" id="9_85g3d"]
+[ext_resource type="Script" path="res://scripts/ui/ui.gd" id="10_choun"]
 
 [sub_resource type="Gradient" id="Gradient_eb6dy"]
 

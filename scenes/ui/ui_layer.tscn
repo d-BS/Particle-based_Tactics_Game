@@ -27,7 +27,6 @@ popup/item_1/id = 1
 script = ExtResource("2_6syxi")
 
 [node name="PauseButton" type="Button" parent="HBoxContainer" unique_id=461370004]
-visible = false
 layout_mode = 2
 focus_mode = 0
 text = "Pause"

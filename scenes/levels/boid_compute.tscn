@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://5rmmflo7fnbi"]
 
-[ext_resource type="Script" uid="uid://dr1asrkr5rx84" path="res://scripts/boid_manager_compute.gd" id="1_maqjf"]
+[ext_resource type="Script" uid="uid://dr1asrkr5rx84" path="res://scripts/gameplay/boid_manager_compute.gd" id="1_maqjf"]
 [ext_resource type="Shader" uid="uid://cumqkbv4dyvkl" path="res://scripts/shaders/perfect_circle.gdshader" id="2_7ubhm"]
 [ext_resource type="Texture2D" uid="uid://dnyy2vadn0f2h" path="res://assets/textures/1x1.png" id="3_eptx2"]
 [ext_resource type="Shader" uid="uid://rqgmkcruw5yr" path="res://scripts/shaders/particle_shader.gdshader" id="4_fp1yc"]

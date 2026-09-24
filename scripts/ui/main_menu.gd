@@ -8,7 +8,7 @@ func _ready() -> void:
 
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	#RenderingServer.set_default_clear_color(Color.CADET_BLUE)
 	
 	pass
@@ -28,15 +28,8 @@ func _on_button_exit_pressed() -> void:
 func _on_button_start_pressed() -> void:
 	
 	var num_units:int = num_selector.value
+	Global.r_player_faction_sizes = [ceil(num_units/2), floor(num_units/2.0)]
 	
-	var next_scene:PackedScene = load("res://scenes/levels/battle.tscn")
-	var scene_instance = next_scene.instantiate()
-	scene_instance.get_child(0).num_boids = num_units
-	
-	get_tree().root.add_child(scene_instance)
-	get_tree().current_scene = scene_instance
-	
-	queue_free()
-	
+	Global.set_scene("res://scenes/levels/battle.tscn")
 	
 	pass # Replace with function body.
