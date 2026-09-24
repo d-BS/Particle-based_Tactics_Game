@@ -14,6 +14,9 @@ func _ready() -> void:
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:
+	
+	
+	
 	pass
 
 
@@ -26,7 +29,8 @@ func _on_play_button_pressed() -> void:
 
 func _on_ff_button_pressed() -> void:
 	
-	Engine.time_scale *= 2
+	if Engine.time_scale < 8:
+		Engine.time_scale *= 2
 	
 	pass # Replace with function body.
 

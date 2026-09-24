@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="faction_data" format=3 uid="uid://caow6vbkisif0"]
+
+[ext_resource type="Script" uid="uid://b8wda2cwohac0" path="res://data/factions/faction_data.gd" id="1_ddqtw"]
+
+[resource]
+script = ExtResource("1_ddqtw")
+max_health = 38.0
+air_alignment = 5.0
+fire_alignment = 12.0
+metadata/_custom_type_script = "uid://b8wda2cwohac0"

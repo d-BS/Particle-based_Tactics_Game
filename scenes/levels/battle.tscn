@@ -1,0 +1,46 @@
+[gd_scene format=3 uid="uid://cwt3634kk1mm3"]
+
+[ext_resource type="Script" uid="uid://blye06w46toic" path="res://scripts/camera_2d.gd" id="1_1b7gj"]
+[ext_resource type="Script" uid="uid://cusqv1q0vl7s7" path="res://scripts/battle.gd" id="1_gcen0"]
+[ext_resource type="PackedScene" uid="uid://5rmmflo7fnbi" path="res://scenes/levels/boid_compute.tscn" id="1_hfvrr"]
+[ext_resource type="Texture2D" uid="uid://b4ov5nm0tlo3x" path="res://assets/textures/flag.png" id="2_fe5fq"]
+[ext_resource type="Script" uid="uid://236saenw6w3s" path="res://scripts/flag.gd" id="3_hfvrr"]
+[ext_resource type="Script" uid="uid://c03c25r226vyr" path="res://scripts/selection_box.gd" id="4_gcen0"]
+[ext_resource type="PackedScene" uid="uid://ci3sy6wdpmrne" path="res://scenes/ui/ui_layer.tscn" id="5_fe5fq"]
+
+[node name="Battle" type="Node" unique_id=1119479971]
+script = ExtResource("1_gcen0")
+
+[node name="BoidCompute" parent="." unique_id=57699779 instance=ExtResource("1_hfvrr")]
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=208641515]
+limit_enabled = false
+limit_left = -10500
+limit_top = -10500
+limit_right = 42000
+limit_bottom = 42000
+limit_smoothed = true
+position_smoothing_enabled = true
+position_smoothing_speed = 10.0
+drag_left_margin = 0.8
+drag_top_margin = 0.8
+drag_right_margin = 0.8
+drag_bottom_margin = 0.8
+editor_draw_drag_margin = true
+script = ExtResource("1_1b7gj")
+
+[node name="Flag" type="Sprite2D" parent="." unique_id=726033370 node_paths=PackedStringArray("boid_manager")]
+z_index = 1
+position = Vector2(297, 155)
+texture = ExtResource("2_fe5fq")
+offset = Vector2(30, -37)
+script = ExtResource("3_hfvrr")
+boid_manager = NodePath("../BoidCompute")
+
+[node name="SelectionBox" type="Node2D" parent="." unique_id=637214788 node_paths=PackedStringArray("boid_manager")]
+script = ExtResource("4_gcen0")
+boid_manager = NodePath("../BoidCompute")
+
+[node name="UiLayer" parent="." unique_id=63256594 node_paths=PackedStringArray("selection_box", "boid_manager") instance=ExtResource("5_fe5fq")]
+selection_box = NodePath("../SelectionBox")
+boid_manager = NodePath("../BoidCompute")

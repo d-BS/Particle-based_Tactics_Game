@@ -28,11 +28,11 @@ func _process(_delta: float) -> void:
 	if Input.is_action_just_pressed("delete"):
 		boid_manager.set_selected_bias(Vector2.INF)
 	
-	if Input.is_action_just_pressed("spawnUnit"):
+	if Input.is_action_just_pressed("space"):
 		
 		#boid_manager.free()
 		
-		var next_scene:PackedScene = load("res://scenes/main_menu.tscn")
+		var next_scene:PackedScene = load("res://scenes/ui/main_menu.tscn")
 		var scene_instance = next_scene.instantiate()
 		
 		get_tree().root.get_child(0).queue_free()

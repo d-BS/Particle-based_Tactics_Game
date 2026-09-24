@@ -10,6 +10,10 @@ var num_workgroups:int
 #TODO:
 #
 #
+#make generic battle scene
+#	The player already has some established army, items, units, etc
+#	There needs to be a 'win' state whenever the enemy is considered defeated enough
+#
 #Resturcture compute shader, and use one texture to store input information,
 #as opposed to ten billion different buffers
 #
@@ -22,15 +26,21 @@ var num_workgroups:int
 #set camera limits automatically to bin size of level
 #
 #create faction system - togglable friendly fire, etc
-#create wall 'faction' for destructable terrain
 #
+#create different unit types
+#
+#
+#
+#make better ff system
+#
+#eventually start on enemy ai
 #
 #make pos_buffer/vel_buffer single vec4 array
 #
 #
 #UI:
 #	Create window for managing each squad:
-#		Color, goal, units, formation etc.
+#		Color(?), goal, units, formation etc.
 #		subwindow for each
 #
 #	Time speed
@@ -180,8 +190,8 @@ signal squads_updated
 
 func _ready():
 	
-	var num_units = 10_000
-	var num_enemies = 10_000
+	var num_units = ceil(num_boids/2)
+	var num_enemies = floor(num_boids/2)
 	
 	var im_size = int(ceil(sqrt(num_units + num_enemies)))
 	
@@ -438,7 +448,7 @@ func _setup_compute_shader():
 	
 	#rd = RenderingServer.get_rendering_device()
 	
-	var shader_file := load("res://scripts/boid_compute_shader.glsl")
+	var shader_file := load("res://scripts/shaders/boid_compute_shader.glsl")
 	var shader_spirv: RDShaderSPIRV = shader_file.get_spirv()
 	boid_compute_shader = rd.shader_create_from_spirv(shader_spirv)
 	pipeline = rd.compute_pipeline_create(boid_compute_shader)
@@ -663,11 +673,14 @@ func select_squad(new_selection_squad:int):
 
 func queue_update_squad_bias_uniform():
 	update_squad_bias_uniform = true
+	
+	
 
 func _update_squad_bias_uniform():
 	
 	if ! update_squad_bias_uniform:
 		return
+	
 	
 	rd.free_rid(squad_bias_buffer)
 	
@@ -687,6 +700,8 @@ func _update_boid_colors():
 	
 	if !update_boid_color_tex:
 		return
+	
+	
 	
 	#16 bytes per pixel
 	var boid_colors_image_data:PackedByteArray = boid_colors.to_byte_array()

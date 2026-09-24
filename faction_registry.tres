@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Registry" format=3 uid="uid://dfsl5s53t5xfv"]
+
+[ext_resource type="Script" uid="uid://dqtv77mng5dyh" path="res://addons/yard/registry.gd" id="1_ymbxb"]
+
+[resource]
+script = ExtResource("1_ymbxb")
+_version = 2
+_scan_rulesets = Array[Dictionary]([{
+&"allowed_file_extensions": Array[String]([".tres"]),
+&"class_restrictions": Array[StringName]([&"faction_data"]),
+&"recursive_scan": false,
+&"scan_directories": Array[String](["res://data/factions"]),
+&"scan_regex_exclude": "",
+&"scan_regex_include": ""
+}])
+_uids_to_string_ids = Dictionary[StringName, StringName]({
+&"uid://caow6vbkisif0": &"fire_elemental",
+&"uid://dbxr6kni84usf": &"sample_faction"
+})
+_string_ids_to_uids = Dictionary[StringName, StringName]({
+&"fire_elemental": &"uid://caow6vbkisif0",
+&"sample_faction": &"uid://dbxr6kni84usf"
+})

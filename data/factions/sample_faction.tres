@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="faction_data" format=3 uid="uid://dbxr6kni84usf"]
+
+[ext_resource type="Script" uid="uid://b8wda2cwohac0" path="res://data/factions/faction_data.gd" id="1_5h1qa"]
+
+[resource]
+script = ExtResource("1_5h1qa")
+faction_id = "sample"
+display_name = "Test Faction"
+max_health = 100
+metadata/_custom_type_script = "uid://b8wda2cwohac0"

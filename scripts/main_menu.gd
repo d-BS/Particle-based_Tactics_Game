@@ -29,7 +29,7 @@ func _on_button_start_pressed() -> void:
 	
 	var num_units:int = num_selector.value
 	
-	var next_scene:PackedScene = load("res://scenes/boid_compute.tscn")
+	var next_scene:PackedScene = load("res://scenes/levels/battle.tscn")
 	var scene_instance = next_scene.instantiate()
 	scene_instance.get_child(0).num_boids = num_units
 	

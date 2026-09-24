@@ -45,6 +45,7 @@ func _init(new_units:Array[int], squad_num:int, new_goal:Vector2 = Vector2.INF, 
 	
 	pass
 
+## removes from index within the squad
 func remove_boid(index:int):
 	
 	
@@ -94,6 +95,18 @@ func update(_delta:float):
 	if(units.size() == 0):
 		return
 	
+	var i = 0
+	var end = units.size()
+	
+	while i < end:
+		
+		if boid_manager.health[units[i]] <= 0:
+			remove_boid(i)
+			end -=1
+			continue
+			
+		
+		i+=1
 	
 	
 	pass
