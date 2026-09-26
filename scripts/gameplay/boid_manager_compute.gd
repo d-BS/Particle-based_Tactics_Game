@@ -59,8 +59,7 @@ var num_workgroups:int
 #
 
 #buffers-to-be
-var boid_pos:PackedVector2Array = []
-var boid_vel:PackedVector2Array = []
+var boid_posvel:PackedVector4Array = []
 var squad_biases:PackedVector2Array = []
 var factions:PackedInt32Array = []
 
@@ -111,12 +110,15 @@ var empty_squads:Array[int] = []
 var IMAGE_SIZE:int
 var boid_data : Image
 var boid_data_texture : ImageTexture
+var boid_data_texture_prev : ImageTexture
 var boid_data_address : Texture2DRD
 var boid_colors_image : Image
 var boid_colors_texture : ImageTexture
 
 ## contains which color each boid is
 var boid_colors:PackedColorArray
+
+var time_since_phys_step:float
 
 
 var vision_radius:float = 35
@@ -145,8 +147,8 @@ var uniform_set_0 : RID
 var uniform_set_1 : RID
 
 #buffers
-var boid_pos_buffer : RID
-var boid_vel_buffer : RID
+var boid_posvel_buffer : RID
+#var boid_vel_buffer : RID
 var squad_bias_buffer:RID
 var bin_matrix_buffer : RID
 var bin_next_buffer : RID
@@ -158,8 +160,8 @@ var health_buffer : RID
 var factions_buffer : RID
 
 #uniforms
-var boid_pos_uniform : RDUniform
-var boid_vel_uniform : RDUniform
+var boid_posvel_uniform : RDUniform
+#var boid_vel_uniform : RDUniform
 var squad_bias_uniform : RDUniform
 var bin_matrix_uniform : RDUniform
 var bin_next_uniform : RDUniform
@@ -210,11 +212,11 @@ func setup(start_zone:Rect2, num_units:int, enemy_zone:Rect2, num_enemies:int):
 	
 	boid_data = Image.create_empty(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RGBAF)
 	boid_data_texture = ImageTexture.create_from_image(boid_data)
+	boid_data_texture_prev = ImageTexture.create_from_image(boid_data)
 	boid_colors_image = Image.create_empty(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RGBAF)
 	boid_colors_texture = ImageTexture.create_from_image(boid_colors_image)
 	
-	boid_pos.resize(num_boids)
-	boid_vel.resize(num_boids)
+	boid_posvel.resize(num_boids)
 	
 	squads = []
 	Squad.boid_manager = self
@@ -254,8 +256,10 @@ func setup(start_zone:Rect2, num_units:int, enemy_zone:Rect2, num_enemies:int):
 	$boid_particles.amount = num_boids
 	#$boid_particles.process_material.set_shader_parameter("boid_data", boid_data_address)
 	$boid_particles.process_material.set_shader_parameter("boid_data", boid_data_texture)
+	$boid_particles.process_material.set_shader_parameter("boid_data_prev", boid_data_texture_prev)
 	$boid_particles.process_material.set_shader_parameter("boid_colors", boid_colors_texture)
-	
+	$boid_particles.process_material.set_shader_parameter("phys_fps", Engine.physics_ticks_per_second)
+	$boid_particles.process_material.set_shader_parameter("time_since_phys_step", time_since_phys_step)
 	
 	#DANGER (potentially?) (using .INF in this situation feels wrong)
 	$boid_particles.visibility_rect = Rect2(-Vector2.INF, Vector2.INF)
@@ -269,9 +273,7 @@ func setup(start_zone:Rect2, num_units:int, enemy_zone:Rect2, num_enemies:int):
 	
 	queue_redraw()
 	
-	#destroys the now-useless buffers
-	boid_pos.clear()
-	boid_vel.clear()
+	boid_posvel.clear()
 	
 
 ## only call during setup!!
@@ -286,9 +288,8 @@ func _spawn_boids(spawn_num:int, spawn_zone:Rect2, faction:int = 0):
 	
 	while i < spawn_num + _spawn_offset:
 		
-		boid_pos[i] =   Vector2(randf() * s_size.x + s_offset.x, \
-								randf() * s_size.y + s_offset.y)
-		boid_vel[i] = Vector2.ZERO
+		boid_posvel[i] =   Vector4(randf() * s_size.x + s_offset.x, \
+								randf() * s_size.y + s_offset.y, 0, 0)
 		factions[i] = faction
 		
 		i += 1
@@ -302,11 +303,17 @@ var _spawn_offset = 0
 
 func _process(delta):
 	
+	time_since_phys_step += delta
+	$boid_particles.process_material.set_shader_parameter("time_since_phys_step", time_since_phys_step)
+	
+	pass
+
+func step_particle_sim(delta):
+	
 	delta *= Global.time_scale
 	
 	get_window().title = "Units: " + str(num_boids) + " / FPS: " + str(Engine.get_frames_per_second())
-	
-	
+	time_since_phys_step = 0
 	
 	_sync_boids_gpu()
 	
@@ -416,10 +423,18 @@ func _update_data_texture():
 	
 	boid_data.set_data(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RGBAF, boid_data_image_data)
 	
+	var temp:ImageTexture = boid_data_texture_prev
+	boid_data_texture_prev = boid_data_texture
+	boid_data_texture = temp
 	boid_data_texture.update(boid_data)
+	$boid_particles.process_material.set_shader_parameter("boid_data", boid_data_texture)
+	$boid_particles.process_material.set_shader_parameter("boid_data_prev", boid_data_texture_prev)
+	
 	
 	#updates boid_pos_active
+	boid_data_image_data = boid_data_image_data.slice(0, num_boids * 16)
 	boid_pos_active = boid_data_image_data.to_vector4_array()
+	rd.buffer_update(boid_posvel_buffer, 0, boid_data_image_data.size(), boid_data_image_data)
 	
 	#updates health
 	health = rd.buffer_get_data(health_buffer, 0, health_bytes.size()).to_float32_array()
@@ -442,33 +457,7 @@ func _setup_compute_shader():
 	boid_compute_shader = rd.shader_create_from_spirv(shader_spirv)
 	pipeline = rd.compute_pipeline_create(boid_compute_shader)
 	
-	boid_pos_buffer = _generate_vec2_buffer(boid_pos)
-	boid_pos_uniform = _generate_uniform(boid_pos_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 0)
 	
-	boid_vel_buffer = _generate_vec2_buffer(boid_vel)
-	boid_vel_uniform = _generate_uniform(boid_vel_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 1)
-	
-	squad_bias_buffer = _generate_vec2_buffer(squad_biases)
-	squad_bias_uniform = _generate_uniform(squad_bias_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 2)
-	
-	bin_matrix_buffer = _generate_int_array_buffer(bin_first_bytes)
-	bin_matrix_uniform = _generate_uniform(bin_matrix_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 3)
-	
-	bin_next_buffer = _generate_int_array_buffer(bin_next_bytes)
-	bin_next_uniform = _generate_uniform(bin_next_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 4)
-	
-	params_buffer_0 = _generate_parameter_buffer(0, 0)
-	params_uniform_0 = _generate_uniform(params_buffer_0, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 5)
-	
-	params_buffer_1 = _generate_parameter_buffer(0, 1)
-	params_uniform_1 = _generate_uniform(params_buffer_1, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 5)
-	
-	health_buffer = rd.storage_buffer_create(health_bytes.size(), health_bytes)
-	health_uniform = _generate_uniform(health_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 7)
-	
-	factions_buffer = _generate_int_array_buffer(factions.to_byte_array())
-	factions_uniform = _generate_uniform(factions_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 8)
-		
 	var fmt := RDTextureFormat.new()
 	fmt.width = IMAGE_SIZE
 	fmt.height = IMAGE_SIZE
@@ -484,21 +473,47 @@ func _setup_compute_shader():
 	
 	#Texture2DRD
 	
-	
 	boid_data_buffer = rd.texture_create(fmt, view, [boid_data.get_data()])
-	boid_data_buffer_uniform = _generate_uniform(boid_data_buffer, RenderingDevice.UNIFORM_TYPE_IMAGE, 6)
+	boid_data_buffer_uniform = _generate_uniform(boid_data_buffer, RenderingDevice.UNIFORM_TYPE_IMAGE, 0)
 	
 	
 	#boid_data_address = Texture2DRD.new()
 	#boid_data_address.texture_rd_rid = boid_data_buffer
 	
-	bindings_0 = [boid_pos_uniform, boid_vel_uniform, squad_bias_uniform, bin_matrix_uniform, bin_next_uniform, params_uniform_0, boid_data_buffer_uniform, health_uniform, factions_uniform]
-	bindings_1 = [boid_pos_uniform, boid_vel_uniform, squad_bias_uniform, bin_matrix_uniform, bin_next_uniform, params_uniform_1, boid_data_buffer_uniform, health_uniform, factions_uniform]
 	
-func _generate_vec2_buffer(data):
-	var data_buffer_bytes := PackedVector2Array(data).to_byte_array()
+	boid_posvel_buffer = _generate_vec_buffer(boid_posvel)
+	boid_posvel_uniform = _generate_uniform(boid_posvel_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 1)
+	
+	squad_bias_buffer = _generate_vec_buffer(squad_biases)
+	squad_bias_uniform = _generate_uniform(squad_bias_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 2)
+	
+	bin_matrix_buffer = _generate_int_array_buffer(bin_first_bytes)
+	bin_matrix_uniform = _generate_uniform(bin_matrix_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 3)
+	
+	bin_next_buffer = _generate_int_array_buffer(bin_next_bytes)
+	bin_next_uniform = _generate_uniform(bin_next_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 4)
+	
+	params_buffer_0 = _generate_parameter_buffer(0, 0)
+	params_uniform_0 = _generate_uniform(params_buffer_0, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 5)
+	
+	params_buffer_1 = _generate_parameter_buffer(0, 1)
+	params_uniform_1 = _generate_uniform(params_buffer_1, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 5)
+	
+	health_buffer = rd.storage_buffer_create(health_bytes.size(), health_bytes)
+	health_uniform = _generate_uniform(health_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 6)
+	
+	factions_buffer = _generate_int_array_buffer(factions.to_byte_array())
+	factions_uniform = _generate_uniform(factions_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 7)
+	
+	
+	bindings_0 = [boid_data_buffer_uniform, boid_posvel_uniform, squad_bias_uniform, bin_matrix_uniform, bin_next_uniform, params_uniform_0, health_uniform, factions_uniform]
+	bindings_1 = [boid_data_buffer_uniform, boid_posvel_uniform, squad_bias_uniform, bin_matrix_uniform, bin_next_uniform, params_uniform_1, health_uniform, factions_uniform]
+	
+func _generate_vec_buffer(data):
+	var data_buffer_bytes:PackedByteArray = data.to_byte_array()
 	var data_buffer = rd.storage_buffer_create(data_buffer_bytes.size(), data_buffer_bytes)
 	return data_buffer
+
 
 func _generate_int_array_buffer(data:PackedByteArray):
 	var data_buffer = rd.storage_buffer_create(data.size(), data)
@@ -545,8 +560,7 @@ func _exit_tree():
 	rd.free_rid(boid_data_buffer)
 	rd.free_rid(params_buffer_0)
 	rd.free_rid(params_buffer_1)
-	rd.free_rid(boid_pos_buffer)
-	rd.free_rid(boid_vel_buffer)
+	rd.free_rid(boid_posvel_buffer)
 	rd.free_rid(pipeline)
 	rd.free_rid(boid_compute_shader)
 	rd.free_rid(squad_bias_buffer)
@@ -673,7 +687,7 @@ func _update_squad_bias_uniform():
 	
 	rd.free_rid(squad_bias_buffer)
 	
-	squad_bias_buffer = _generate_vec2_buffer(squad_biases)
+	squad_bias_buffer = _generate_vec_buffer(squad_biases)
 	squad_bias_uniform = _generate_uniform(squad_bias_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 2)
 	bindings_0[2] = squad_bias_uniform
 	bindings_1[2] = squad_bias_uniform

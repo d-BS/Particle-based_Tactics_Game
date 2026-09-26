@@ -11,6 +11,8 @@ shader = ExtResource("2_7ubhm")
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_4sp5u"]
 shader = ExtResource("4_fp1yc")
 shader_parameter/scale = 25.0
+shader_parameter/phys_fps = 0
+shader_parameter/time_since_phys_step = 0.0
 
 [node name="BoidCompute" type="Node2D" unique_id=57699779]
 script = ExtResource("1_maqjf")
@@ -21,6 +23,8 @@ amount = 100
 texture = ExtResource("3_eptx2")
 lifetime = 600.0
 explosiveness = 1.0
+fixed_fps = 0
+interpolate = false
 visibility_rect = Rect2(-1000, -1000, 2000, 2000)
 process_material = SubResource("ShaderMaterial_4sp5u")
 

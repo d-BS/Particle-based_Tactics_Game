@@ -2,7 +2,12 @@ shader_type particles;
 
 uniform sampler2D boid_colors;
 uniform sampler2D boid_data;
+uniform sampler2D boid_data_prev;
 uniform float scale = .5;
+uniform int phys_fps;
+uniform float time_since_phys_step;
+
+float lerp(float start, float fin, float t){return start + (fin - start) * t;}
 
 void process() {
 	
@@ -13,13 +18,23 @@ void process() {
 	ivec2 texel_pos = ivec2(int(INDEX) % pos_image_size.x, (int(INDEX) / pos_image_size.x));
 	
 	vec4 boid_pos = texelFetch(boid_data, texel_pos, 0);
+	vec4 boid_pos_prev = texelFetch(boid_data_prev, texel_pos, 0);
 	
-	//mat2 scale_rot_mat = mat2(vec2(cos(boid_pos_rot.b), sin(boid_pos_rot.b)), // First column
-	//						  vec2(-sin(boid_pos_rot.b), cos(boid_pos_rot.b))); // Second column
-	//scale_rot_mat *= scale;
+	float amt_of_phys_frame_passed = time_since_phys_step / (1.0 / float(phys_fps));
+	//float amt_of_phys_frame_passed = time_since_phys_step * float(phys_fps);
+	
+	amt_of_phys_frame_passed = clamp(amt_of_phys_frame_passed, 0, 1);
+	
+	
+	float x_pos = lerp(boid_pos_prev.r, boid_pos.r, amt_of_phys_frame_passed);
+	float y_pos = lerp(boid_pos_prev.g, boid_pos.g, amt_of_phys_frame_passed);
+	
+	//x_pos = boid_pos.r;
+	//y_pos = boid_pos.g;
+	
 	TRANSFORM[0].xy = vec2(scale, 0);
 	TRANSFORM[1].xy = vec2(0, scale);
-	TRANSFORM[3].xy = vec2(boid_pos.r, boid_pos.g); 
+	TRANSFORM[3].xy = vec2(x_pos, y_pos); 
 	
 	
 	
@@ -27,10 +42,10 @@ void process() {
 	COLOR = texelFetch(boid_colors, texel_pos, 0);
 	
 	
-	if(boid_pos.b <= 0.0)
-		COLOR.a = 0.0;
-	else
-		COLOR.rgb *= boid_pos.b / 100.0 +.2;
+	//if(boid_pos.b <= 0.0)
+	//	COLOR.a = 0.0;
+	//else
+	//	COLOR.rgb *= boid_pos.b / 100.0 +.2;
 	
 		
 	

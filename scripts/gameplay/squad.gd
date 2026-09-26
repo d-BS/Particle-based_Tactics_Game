@@ -10,6 +10,10 @@ var unit_locations: PackedVector2Array
 var color:Color
 var formation:Formation = null
 
+## how many portions to split the squad into to do/frame
+const lazy_factor:int = 10
+const max_checked_per_frame:int = 10_000
+var lazy_offset:int = 0
 
 var update_uniform:bool = false
 
@@ -95,19 +99,34 @@ func update(_delta:float):
 	if(units.size() == 0):
 		return
 	
-	var i = 0
-	var end = units.size()
+	
+	
+	var i = lazy_offset
+	
+	var end:int = units.size() / lazy_factor
+	if end > max_checked_per_frame:
+		end = max_checked_per_frame
+	
+	end += lazy_offset
+	if end >= units.size():
+		end = units.size()
+	
 	
 	while i < end:
+		
 		
 		if boid_manager.health[units[i]] <= 0:
 			remove_boid(i)
 			end -=1
 			continue
-			
+		
+		if i >= units.size() - 1:
+			lazy_offset = 0
+			return
 		
 		i+=1
 	
+	lazy_offset = end
 	
 	pass
 

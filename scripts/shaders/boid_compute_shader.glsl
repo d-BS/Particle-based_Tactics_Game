@@ -15,15 +15,18 @@
 
 layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
 
-//buffer for the position of each boid
-layout(set = 0, binding = 0, std430) restrict buffer Position {
-	vec2 data[];
-} boid_pos;
 
-//buffer for the velocity of each boid
-layout(set = 0, binding = 1, std430) restrict buffer Velocity{
-	vec2 data[];
-} boid_vel;
+//image out
+//formerly rgba16f
+layout(set = 0, rgba32f, binding = 0) restrict writeonly uniform image2D boid_data;
+
+
+//buffer for the position of each boid
+layout(set = 0, binding = 1, std430) restrict buffer PosVel {
+	vec4 data[];
+} boid_posvel;
+
+
 
 //buffer for bias provided by squad
 layout(set = 0, binding = 2, std430) restrict buffer SquadBias{
@@ -69,18 +72,13 @@ layout(set = 0, binding = 5, std430) restrict buffer Params{
 //float wake_cutoff;
 
 
-//image out
-//formerly rgba16f
-layout(rgba32f, binding = 6) uniform image2D boid_data;
-
-
 //holds health of each unit
-layout(set = 0, binding = 7, std430) restrict buffer Health{
+layout(set = 0, binding = 6, std430) restrict buffer Health{
 	float data[];
 } health;
 
 //holds faction # of each unit
-layout(set = 0, binding = 8, std430) restrict buffer Faction{
+layout(set = 0, binding = 7, std430) restrict buffer Faction{
 	int data[];
 } faction;
 
@@ -113,10 +111,17 @@ vec2 avoid_velocity_ave = vec2(0,0);
 vec2 average_velocity = vec2(0,0);
 vec2 average_position = vec2(0,0);
 
+vec2 position;
+vec2 velocity;
 
 
 void main() {
-	
+
+	vec4 pos_vel = boid_posvel.data[index];
+
+	position = pos_vel.rg;
+	velocity = pos_vel.ba;
+
 	
 	//having this just makes some things cleaner
 	if (index >= params.num_boids){
@@ -125,15 +130,13 @@ void main() {
 	if (health.data[index] <= 0){
 		
 		storeImage();
-
 		return;
 	}
 
 
 
-	if (params.pass_number == 0.0){
+	if (params.pass_number == 0.0)
 		binning_pass();
-	}
 	else if(params.pass_number == 1.0)
 		boid_physics_pass();
 
@@ -144,10 +147,6 @@ void main() {
 
 void boid_physics_pass() {
 
-
-
-	vec2 position = boid_pos.data[index];
-	vec2 velocity = boid_vel.data[index];
 
 
 	//last resort catches
@@ -240,11 +239,6 @@ void boid_physics_pass() {
 	
 
 	position += velocity * params.delta_time;
-	
-
-	boid_vel.data[index] = velocity;
-	boid_pos.data[index] = position;
-
 
 	storeImage();
 }
@@ -258,11 +252,9 @@ void boid_loop_interior(int i){
 
 	if(i!=index){
 
-		vec2 b_pos = boid_pos.data[i];
-		vec2 b_vel = boid_vel.data[i];
-		vec2 position = boid_pos.data[index];
+		vec4 other_posvel = boid_posvel.data[i];
 
-		float distance = distance(position, b_pos);
+		float distance = distance(position, other_posvel.rg);
 
 		if(distance < params.vision_rad){
 
@@ -272,7 +264,7 @@ void boid_loop_interior(int i){
 			if(distance <= params.avoid_rad){
 				avoid_neighbors++;
 
-				vec2 to_add = position - b_pos;
+				vec2 to_add = position - other_posvel.rg;
 
 
 				//make this into a tunable variable?
@@ -281,7 +273,7 @@ void boid_loop_interior(int i){
 
 
 				//avoid_direction += position - b_pos;
-				avoid_velocity_ave += b_vel;
+				avoid_velocity_ave += other_posvel.ba;
 				
 
 				if(faction.data[index] % 2 != faction.data[i] % 2)
@@ -293,8 +285,8 @@ void boid_loop_interior(int i){
 
 			}
 
-			average_velocity += b_vel;
-			average_position += b_pos;
+			average_velocity += other_posvel.ba;
+			average_position += other_posvel.rg;
 
 		}
 
@@ -358,7 +350,6 @@ void binning_pass() {
 int get_bindex(){
 
 
-	vec2 position = boid_pos.data[index];
 	vec2 bin_pos = (position - vec2(params.bin_offset_x, params.bin_offset_y)) / params.vision_rad;
 
 
@@ -377,7 +368,6 @@ void storeImage(){
 
 	int img_size_int = int(params.image_size);
 	ivec2 pixel_pos = ivec2(index % img_size_int, index / img_size_int);
-	vec2 position = boid_pos.data[index];
 	
-	imageStore(boid_data, pixel_pos, vec4(position.x, position.y, health.data[index], 0));
+	imageStore(boid_data, pixel_pos, vec4(position.x, position.y, velocity.x, velocity.y));
 }
