@@ -3,6 +3,7 @@ shader_type particles;
 uniform sampler2D boid_colors;
 uniform sampler2D boid_data;
 uniform sampler2D boid_data_prev;
+uniform sampler2D health;
 uniform float scale = .5;
 uniform int phys_fps;
 uniform float time_since_phys_step;
@@ -41,11 +42,12 @@ void process() {
 	//sets color
 	COLOR = texelFetch(boid_colors, texel_pos, 0);
 	
+	vec4 boid_health = texelFetch(health, texel_pos, 0);
 	
-	//if(boid_pos.b <= 0.0)
-	//	COLOR.a = 0.0;
-	//else
-	//	COLOR.rgb *= boid_pos.b / 100.0 +.2;
+	if(boid_health.r <= 0.0)
+		COLOR.a = 0.0;
+	else
+		COLOR.rgb *= boid_health.r / 100.0 +.2;
 	
 		
 	

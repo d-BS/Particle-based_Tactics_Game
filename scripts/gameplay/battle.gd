@@ -72,7 +72,8 @@ func _unhandled_input(event: InputEvent) -> void:
 func _physics_process(delta: float) -> void:
 	
 	
-	boid_manager.step_particle_sim(delta)
+	if Global.time_scale != 0:
+		boid_manager.step_particle_sim(delta)
 	
 	
 	pass

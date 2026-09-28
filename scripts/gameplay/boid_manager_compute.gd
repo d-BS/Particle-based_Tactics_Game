@@ -9,13 +9,10 @@ var num_workgroups:int
 
 #TODO:
 #
-#
-#make generic battle scene
-#	The player already has some established army, items, units, etc
-#	There needs to be a 'win' state whenever the enemy is considered defeated enough
+#add win condition
 #
 #Resturcture compute shader, and use one texture to store input information,
-#as opposed to ten billion different buffers
+#as opposed to ten billion different buffers (?)
 #
 #split boid manager into cpu-focused script and gpu-focused script?
 #I think that may be better than the mess I have now
@@ -25,17 +22,11 @@ var num_workgroups:int
 #
 #set camera limits automatically to bin size of level
 #
-#create faction system - togglable friendly fire, etc
-#
 #create different unit types
 #
 #
 #
-#make better ff system
-#
 #eventually start on enemy ai
-#
-#make pos_buffer/vel_buffer single vec4 array
 #
 #
 #UI:
@@ -73,7 +64,8 @@ var factions:PackedInt32Array = []
 
 var health:PackedFloat32Array = []
 var health_bytes:PackedByteArray
-#var is_alive:PackedByteArray = []
+var health_img:Image
+var health_tex:ImageTexture
 
 
 
@@ -213,8 +205,12 @@ func setup(start_zone:Rect2, num_units:int, enemy_zone:Rect2, num_enemies:int):
 	boid_data = Image.create_empty(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RGBAF)
 	boid_data_texture = ImageTexture.create_from_image(boid_data)
 	boid_data_texture_prev = ImageTexture.create_from_image(boid_data)
+	
 	boid_colors_image = Image.create_empty(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RGBAF)
 	boid_colors_texture = ImageTexture.create_from_image(boid_colors_image)
+	
+	health_img = Image.create_empty(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RF)
+	health_tex = ImageTexture.create_from_image(health_img)
 	
 	boid_posvel.resize(num_boids)
 	
@@ -240,7 +236,7 @@ func setup(start_zone:Rect2, num_units:int, enemy_zone:Rect2, num_enemies:int):
 	bin_next_bytes = bin_next.to_byte_array()
 	bin_next.clear()
 	
-	health.resize(num_boids)
+	health.resize(IMAGE_SIZE * IMAGE_SIZE)
 	health.fill(100)
 	health_bytes = health.to_byte_array()
 	
@@ -258,6 +254,7 @@ func setup(start_zone:Rect2, num_units:int, enemy_zone:Rect2, num_enemies:int):
 	$boid_particles.process_material.set_shader_parameter("boid_data", boid_data_texture)
 	$boid_particles.process_material.set_shader_parameter("boid_data_prev", boid_data_texture_prev)
 	$boid_particles.process_material.set_shader_parameter("boid_colors", boid_colors_texture)
+	$boid_particles.process_material.set_shader_parameter("health", health_tex)
 	$boid_particles.process_material.set_shader_parameter("phys_fps", Engine.physics_ticks_per_second)
 	$boid_particles.process_material.set_shader_parameter("time_since_phys_step", time_since_phys_step)
 	
@@ -437,8 +434,13 @@ func _update_data_texture():
 	rd.buffer_update(boid_posvel_buffer, 0, boid_data_image_data.size(), boid_data_image_data)
 	
 	#updates health
-	health = rd.buffer_get_data(health_buffer, 0, health_bytes.size()).to_float32_array()
+	health_bytes = rd.buffer_get_data(health_buffer, 0, health_bytes.size())
+	health = health_bytes.to_float32_array()
 	
+	health_img.set_data(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RF, health_bytes)
+	health_tex.update(health_img)
+	#var health_img = Image.create_from_data(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RF, health_bytes)
+	#var health_tex = ImageTexture.create_from_image()
 	
 	
 	#$boid_particles.process_material.set_shader_parameter("boid_data", boid_data_address)

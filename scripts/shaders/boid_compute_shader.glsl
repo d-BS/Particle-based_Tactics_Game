@@ -17,12 +17,11 @@ layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
 
 
 //image out
-//formerly rgba16f
 layout(set = 0, rgba32f, binding = 0) restrict writeonly uniform image2D boid_data;
 
 
 //buffer for the position of each boid
-layout(set = 0, binding = 1, std430) restrict buffer PosVel {
+layout(set = 0, binding = 1, std430) restrict readonly buffer PosVel {
 	vec4 data[];
 } boid_posvel;
 
