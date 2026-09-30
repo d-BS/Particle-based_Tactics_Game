@@ -193,6 +193,8 @@ func _ready():
 ## passed between each battle
 func setup(start_zone:Rect2, num_units:int, enemy_zone:Rect2, num_enemies:int):
 	
+	
+	
 	num_boids = num_units + num_enemies
 	
 	num_workgroups = ceil(num_boids / 128.0)

@@ -20,6 +20,7 @@ shader_parameter/boost = 1.3999999910592
 shader_parameter/aberration_amount = 0.999999977648
 
 [node name="CrtShader" type="CanvasLayer" unique_id=299937217]
+layer = 1025
 
 [node name="ColorRect" type="ColorRect" parent="." unique_id=1096736011]
 material = SubResource("ShaderMaterial_8vvpq")

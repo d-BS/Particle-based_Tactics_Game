@@ -11,7 +11,6 @@ var time_scale:float = 1
 
 
 
-
 var current_scene:Node = null
 var game_root:Node
 
@@ -29,7 +28,7 @@ func setup_crt_shader():
 	game_root.remove_child.call_deferred(current_scene)
 	game_root = $PixelSubviewportContainer/SubViewport
 	game_root.add_child.call_deferred(current_scene)
-	
+	game_root.gui_embed_subwindows = true
 	
 	add_global_node("res://scenes/visuals/crt_shader.tscn")
 	$CrtShader/ColorRect.material.set_shader_parameter("curve_factor", Vector2(5, 5))

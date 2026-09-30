@@ -7,7 +7,6 @@
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_o08vg"]
 shader = ExtResource("2_7ubhm")
-shader_parameter/zoom_scale = 0.0
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_4sp5u"]
 shader = ExtResource("4_fp1yc")
@@ -16,6 +15,7 @@ shader_parameter/phys_fps = 0
 shader_parameter/time_since_phys_step = 0.0
 
 [node name="BoidCompute" type="Node2D" unique_id=57699779]
+z_index = 1
 script = ExtResource("1_maqjf")
 
 [node name="boid_particles" type="GPUParticles2D" parent="." unique_id=1138052582]

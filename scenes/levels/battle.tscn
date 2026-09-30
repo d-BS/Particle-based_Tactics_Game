@@ -62,8 +62,21 @@ script = SubResource("GDScript_hfvrr")
 boid_manager = NodePath("../BoidCompute")
 
 [node name="SelectionBox" type="Node2D" parent="." unique_id=637214788 node_paths=PackedStringArray("boid_manager")]
+z_index = 1
 script = ExtResource("4_gcen0")
 boid_manager = NodePath("../BoidCompute")
+
+[node name="BgLayer" type="CanvasLayer" parent="." unique_id=112088167]
+layer = -1
+
+[node name="ColorRect" type="ColorRect" parent="BgLayer" unique_id=1880217660]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.21176471, 0.16862746, 0.21176471, 1)
 
 [node name="UiLayer" parent="." unique_id=63256594 node_paths=PackedStringArray("selection_box", "boid_manager") instance=ExtResource("5_fe5fq")]
 selection_box = NodePath("../SelectionBox")

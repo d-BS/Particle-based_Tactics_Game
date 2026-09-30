@@ -16,6 +16,15 @@ theme = ExtResource("1_fe2o3")
 script = ExtResource("2_1g8jr")
 num_selector = NodePath("CenterContainer/VBoxContainer/MarginContainer/HBoxContainer/MarginContainer/VBoxContainer2/SpinBox")
 
+[node name="ColorRect" type="ColorRect" parent="." unique_id=2065359415]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.21176471, 0.16862746, 0.21176471, 1)
+
 [node name="CenterContainer" type="CenterContainer" parent="." unique_id=1110415450]
 layout_mode = 1
 anchors_preset = 15
