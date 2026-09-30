@@ -12,12 +12,33 @@ var time_scale:float = 1
 
 
 
-
 var current_scene:Node = null
+var game_root:Node
 
 func _ready():
-	var root = get_tree().root
-	current_scene = root.get_child(-1)
+	game_root = get_tree().root
+	current_scene = game_root.get_child(-1)
+	
+	
+	setup_crt_shader()
+	
+
+func setup_crt_shader():
+	
+	add_global_node("res://scenes/visuals/pixel_subviewport.tscn")
+	game_root.remove_child.call_deferred(current_scene)
+	game_root = $PixelSubviewportContainer/SubViewport
+	game_root.add_child.call_deferred(current_scene)
+	
+	
+	add_global_node("res://scenes/visuals/crt_shader.tscn")
+	$CrtShader/ColorRect.material.set_shader_parameter("curve_factor", Vector2(5, 5))
+	
+
+func add_global_node(path:String):
+	
+	var new_scene:PackedScene = ResourceLoader.load(path)
+	add_child(new_scene.instantiate())
 
 ## changes the scene to the given path
 func set_scene(path:String):
@@ -30,6 +51,4 @@ func _deferred_set_scene(path:String):
 	var new_scene:PackedScene = ResourceLoader.load(path)
 	
 	current_scene = new_scene.instantiate()
-	
-	
-	get_tree().root.add_child(current_scene)
+	game_root.add_child(current_scene)

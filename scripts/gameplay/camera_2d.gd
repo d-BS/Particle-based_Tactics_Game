@@ -1,7 +1,13 @@
 extends Camera2D
 
-var cam_speed:float = 750
+var cam_speed:float = 250
 var zoom_scale_factor:float = 2
+
+#set zoom to closest square divisor of 1/25 to 1(i think thats the term?)
+#(in other words, when you divide this by two a bunch you get 1/25)
+#(1/25 is important because the lil guys are 25 world units in diameter,
+#and getting to a zoom of 1/25 means each little guy occupies exactly one pixel)
+const INITIAL_ZOOM = 1.28
 var desired_location:Vector2 = position
 
 var shift:bool = false
@@ -17,6 +23,9 @@ var d_time:float
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
+	
+	zoom *= INITIAL_ZOOM
+	
 	
 	pass # Replace with function body.
 
@@ -136,9 +145,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		pass
 	if event.is_action_pressed("zoom_out"):
 		
+		if zoom.x <= 1/25.0:
+			return;
+		
 		zoom /= zoom_scale_factor
 		cam_speed *= zoom_scale_factor
-		
 		scaleChanged.emit(false, zoom_scale_factor)
 		
 		pass

@@ -29,8 +29,8 @@ func _on_play_button_pressed() -> void:
 
 func _on_ff_button_pressed() -> void:
 	
-	
-	Global.time_scale *= 2
+	if Global.time_scale < 16:
+		Global.time_scale *= 2
 	
 	pass # Replace with function body.
 

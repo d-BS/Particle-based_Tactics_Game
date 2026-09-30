@@ -2,6 +2,10 @@ class_name faction_data
 extends Resource
 
 @export var faction_id:String
+enum RARITY {average, unusual, extraordinary, prodigal, divine}
+@export var rarity:RARITY
+
+
 @export var display_name:String
 @export_multiline var description:String
 @export_category("Stats")

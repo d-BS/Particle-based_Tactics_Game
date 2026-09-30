@@ -21,12 +21,13 @@ Global="*uid://bcmux3ftk2hbu"
 
 [display]
 
-window/size/viewport_width=3072
-window/size/viewport_height=1920
+window/size/viewport_width=1920
+window/size/viewport_height=1080
 window/size/resizable=false
 window/size/minimize_disabled=true
 window/size/maximize_disabled=true
 window/stretch/mode="viewport"
+window/stretch/aspect="keep_height"
 
 [editor_plugins]
 
@@ -77,6 +78,11 @@ shift={
 "events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":4194325,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
 ]
 }
+0={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":48,"key_label":0,"unicode":48,"location":0,"echo":false,"script":null)
+]
+}
 
 [physics]
 
@@ -92,3 +98,6 @@ rendering_device/driver.windows="d3d12"
 renderer/rendering_method="mobile"
 textures/vram_compression/import_etc2_astc=true
 anti_aliasing/screen_space_roughness_limiter/enabled=false
+2d/snap/snap_2d_transforms_to_pixel=true
+2d/snap/snap_2d_vertices_to_pixel=true
+2d/stretch/mode="canvas_items"

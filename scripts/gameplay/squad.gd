@@ -52,22 +52,35 @@ func _init(new_units:Array[int], squad_num:int, new_goal:Vector2 = Vector2.INF, 
 ## removes from index within the squad
 func remove_boid(index:int):
 	
+	if index >= units.size():
+		printerr("Error: tried to remove oob boid from squad")
+		return
+		
 	
 	boid_manager.squad_biases[units[index]] = Vector2.INF
 	boid_manager.squad_indeces[units[index]] = -Vector2.ONE
 	
 	#should swap toremove w back
 	units[index] = units[units.size() - 1]
+	if formation != null:
+		formation.pos[index] = formation.pos[units.size() - 1]
 	#updates moved unit, pops toremove
 	boid_manager.squad_indeces[units[index]].y = index
 	units.resize(units.size() - 1)
 	
+	
+	
 	if(units.is_empty()):
 		
-		boid_manager.empty_squads.insert(boid_manager.empty_squads.bsearch(squad_id), squad_id)
-		num_of_squads -= 1
+		mark_empty(squad_id)
 	
 	pass
+
+static func mark_empty(squad_num:int):
+	
+	boid_manager.empty_squads.insert(boid_manager.empty_squads.bsearch(squad_num), squad_num)
+	num_of_squads -= 1
+	
 
 func set_bias(new_bias:Vector2):
 	
@@ -103,7 +116,7 @@ func update(_delta:float):
 	
 	var i = lazy_offset
 	
-	var end:int = units.size() / lazy_factor
+	var end:int = ceil(units.size() / float(lazy_factor))
 	if end > max_checked_per_frame:
 		end = max_checked_per_frame
 	
@@ -126,7 +139,10 @@ func update(_delta:float):
 		
 		i+=1
 	
-	lazy_offset = end
+	if units.is_empty():
+		return
+	
+	lazy_offset = end % units.size()
 	
 	pass
 

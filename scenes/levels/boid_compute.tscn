@@ -7,6 +7,7 @@
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_o08vg"]
 shader = ExtResource("2_7ubhm")
+shader_parameter/zoom_scale = 0.0
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_4sp5u"]
 shader = ExtResource("4_fp1yc")

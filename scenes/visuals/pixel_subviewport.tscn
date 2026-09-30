@@ -1,0 +1,20 @@
+[gd_scene format=3 uid="uid://kcy8u6uf51ey"]
+
+[node name="PixelSubviewportContainer" type="SubViewportContainer" unique_id=1595185932]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+stretch = true
+stretch_shrink = 3
+
+[node name="SubViewport" type="SubViewport" parent="." unique_id=916614257]
+disable_3d = true
+handle_input_locally = false
+snap_2d_transforms_to_pixel = true
+snap_2d_vertices_to_pixel = true
+canvas_item_default_texture_filter = 0
+audio_listener_enable_2d = true
+size = Vector2i(640, 360)
+render_target_update_mode = 4

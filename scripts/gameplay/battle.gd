@@ -1,5 +1,8 @@
 extends Node
 
+#3072
+#1920
+
 #battle.gd
 
 #This script is in charge of getting information from outer game loop,
@@ -61,6 +64,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		Global.set_scene("res://scenes/ui/main_menu.tscn")
 		
 	
+	
+	
+	
 	pass
 	
 	pass
@@ -72,8 +78,18 @@ func _unhandled_input(event: InputEvent) -> void:
 func _physics_process(delta: float) -> void:
 	
 	
-	if Global.time_scale != 0:
-		boid_manager.step_particle_sim(delta)
+	if Global.time_scale == 0:
+		
+		return
+	
+	
+	
+	boid_manager.step_particle_sim(delta)
+	
+	#excecute any queued actions
+	boid_manager._update_squad_bias_uniform()
+	boid_manager._update_boid_colors()
+	
 	
 	
 	pass

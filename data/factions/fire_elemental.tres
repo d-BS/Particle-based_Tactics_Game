@@ -4,7 +4,5 @@
 
 [resource]
 script = ExtResource("1_ddqtw")
-max_health = 38.0
-air_alignment = 5.0
-fire_alignment = 12.0
+color = Color(1, 0.21568628, 0.21960784, 1)
 metadata/_custom_type_script = "uid://b8wda2cwohac0"

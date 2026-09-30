@@ -7,6 +7,7 @@ void vertex() {
 
 void fragment() {
 	
+//}void not_fragment(){ vec2 UV = vec2(0,0); vec4 COLOR = vec4(0,0,0,0);
 	//dertermines if pixel is inside or outside circle
 	//with radius of .5
 	

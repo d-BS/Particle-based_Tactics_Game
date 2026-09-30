@@ -1,0 +1,31 @@
+[gd_scene format=3 uid="uid://ovcfjurdi3fn"]
+
+[ext_resource type="Shader" uid="uid://bh3ancjq38atc" path="res://scripts/shaders/crt_shader.gdshader" id="1_vvlc6"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_8vvpq"]
+shader = ExtResource("1_vvlc6")
+shader_parameter/curve_factor = Vector2(1, 1)
+shader_parameter/screen_size = Vector2(640, 360)
+shader_parameter/show_curvature = true
+shader_parameter/corner_color = Vector4(0, 0, 0, 0)
+shader_parameter/show_vignette = true
+shader_parameter/vignette_opacity = 0.2
+shader_parameter/show_horizontal_scan_lines = true
+shader_parameter/horizontal_scan_lines_amount = 180.0
+shader_parameter/horizontal_scan_lines_opacity = 0.0999999977648
+shader_parameter/show_vertical_scan_lines = false
+shader_parameter/vertical_scan_lines_amount = 320.0
+shader_parameter/vertical_scan_lines_opacity = 0.0999999977648
+shader_parameter/boost = 1.3999999910592
+shader_parameter/aberration_amount = 0.999999977648
+
+[node name="CrtShader" type="CanvasLayer" unique_id=299937217]
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=1096736011]
+material = SubResource("ShaderMaterial_8vvpq")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2

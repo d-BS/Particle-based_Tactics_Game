@@ -329,10 +329,6 @@ func step_particle_sim(delta):
 		s.update(delta)
 		
 	
-	#excecute any queued actions
-	_update_squad_bias_uniform()
-	_update_boid_colors()
-	
 	
 
 
@@ -735,8 +731,7 @@ func _delete_boids():
 	
 	for b in boids_to_delete:
 		
-		if squad_indeces[b].x != -1:
-			squads[squad_indeces[b].x].remove_boid(int(squad_indeces[b].y))
+		remove_from_squads(b)
 		
 		health[b] = 0
 		
@@ -747,6 +742,12 @@ func _delete_boids():
 	queue_update_health_buffer = true
 	
 	pass
+
+func remove_from_squads(b:int):
+	
+	if squad_indeces[b].x != -1:
+		squads[squad_indeces[b].x].remove_boid(int(squad_indeces[b].y))
+	
 
 func _update_health_buffer():
 	
