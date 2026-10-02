@@ -22,12 +22,12 @@ uniform bool show_vignette = true;
 uniform float vignette_opacity : hint_range(0.0, 1.0, 0.01) = 0.2;
 uniform bool show_horizontal_scan_lines = true;
 uniform float horizontal_scan_lines_amount : hint_range(0.0, 180.0, 0.1) = 180.0;
-uniform float horizontal_scan_lines_opacity : hint_range(0.0, 1.0, 0.01) = 1.0;
+uniform float horizontal_scan_lines_opacity : hint_range(0.0, 1.0, 0.01) = .1;
 uniform bool show_vertical_scan_lines = false;
 uniform float vertical_scan_lines_amount : hint_range(0.0, 320.0, 0.1) = 320.0;
-uniform float vertical_scan_lines_opacity : hint_range(0.0, 1.0, 0.01) = 1.0;
-uniform float boost : hint_range(1.0, 5.0, 0.01) = 1.2;
-uniform float aberration_amount : hint_range(0.0, 10.0, 0.01) = 0.0;
+uniform float vertical_scan_lines_opacity : hint_range(0.0, 1.0, 0.01) = .02;
+uniform float boost : hint_range(1.0, 5.0, 0.01) = 1.4;
+uniform float aberration_amount : hint_range(0.0, 10.0, 0.01) = 1.0;
 
 vec2 apply_curve(vec2 uv){
 	

@@ -54,6 +54,7 @@ editor_draw_drag_margin = true
 script = ExtResource("1_1b7gj")
 
 [node name="Flag" type="Sprite2D" parent="." unique_id=726033370 node_paths=PackedStringArray("boid_manager")]
+visible = false
 z_index = 1
 position = Vector2(297, 155)
 texture = ExtResource("2_fe5fq")

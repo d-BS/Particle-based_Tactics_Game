@@ -125,7 +125,7 @@ var alignment_factor:float = -.7
 var cohesion_factor:float = -.05
 #formerly 10, then 15 w old formula, .25 w new
 var separation_factor:float = .3
-var damp_factor:float = 1.5
+var damp_factor:float = 1.4
 
 
 # GPU Variables

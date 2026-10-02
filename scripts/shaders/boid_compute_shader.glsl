@@ -1,8 +1,7 @@
 #[compute]
 #version 450
-
 #extension GL_EXT_shader_atomic_float : enable
-
+#define PI 3.14159265359
 
 //to add:
 //sleeping ... ?
@@ -66,7 +65,7 @@ layout(set = 0, binding = 5, std430) restrict buffer Params{
     float delta_time;
 } params;
 
-
+//weight
 //float sleep_cutoff;
 //float wake_cutoff;
 
@@ -104,7 +103,6 @@ int index = int(gl_GlobalInvocationID.x);
 int num_neighbors = 0;
 
 int avoid_neighbors = 0;
-vec2 avoid_direction = vec2(0,0);
 vec2 avoid_velocity_ave = vec2(0,0);
 
 vec2 average_velocity = vec2(0,0);
@@ -173,11 +171,7 @@ void boid_physics_pass() {
 		loop_over_bin(neighborhood[i] + bindex);
 	}
 
-
-
-
-	
-	if (num_neighbors > 0){
+	if (num_neighbors > 0 ){
 
 		//this causes groups to go faster whn alignment_factor is positive
 		velocity += (average_velocity / num_neighbors) * params.alignment_factor * params.delta_time;
@@ -185,6 +179,12 @@ void boid_physics_pass() {
 		//applies average position
 		velocity += (average_position / num_neighbors - position) * params.cohesion_factor * params.delta_time;
 	}
+
+	if(avoid_neighbors != 0){
+
+		velocity = avoid_velocity_ave / avoid_neighbors;
+	}
+
 
 
 
@@ -198,10 +198,11 @@ void boid_physics_pass() {
 	if(!isinf(personal_squad_bias[0])){
 		
 		vec2 bias = personal_squad_bias - position;
+		float bias_cutoff_squared = 36; //so 6 normally
 
 		//ridiculous degrees of magic numbers
-		if(bias != vec2(0,0))
-			velocity += normalize(bias) * 1000 * params.delta_time * .075;
+		if(bias != vec2(0,0) && (bias.x*bias.x + bias.y*bias.y) > bias_cutoff_squared)
+			velocity += normalize(bias) * params.delta_time * 50;
 
 	}
 
@@ -213,84 +214,96 @@ void boid_physics_pass() {
 	//sleep
 
 
-	//skips work if no collisions
-	if(avoid_neighbors != 0){
-
-		avoid_velocity_ave /= avoid_neighbors;
-		avoid_direction /= avoid_neighbors;
-
-		//makes avoid dir stronger the closer the boids are together
-		//magic nums formerly 1.25, 2
-		//avoid_direction = -avoid_direction * 2.5 + normalize(avoid_direction) * params.avoid_rad * 3;
-
-
-		//takes the weighted average of current velocity and colliding velocities
-		//adds avoidance vector, for final semi-elastic collision
-		//make this tunable - boinginess?
-		float self_v_weight = .1;
-		velocity = (avoid_velocity_ave * self_v_weight + velocity) / (1 + self_v_weight) + (avoid_direction * params.avoidance_factor);
-		
-
-		//velocity = avoid_velocity_ave + (avoid_direction * params.avoidance_factor);
-	}
-
-
 	
-
 	position += velocity * params.delta_time;
 
 	storeImage();
 }
 
 
+void damage_calculation(uint i){
 
+	//damage calculation will go here
+	if(faction.data[index] % 2 != faction.data[i] % 2)
+		atomicAdd(health.data[i], -10 * params.delta_time);
+	else
+		atomicAdd(health.data[i], -1 * params.delta_time);
+}
 
 
 
 void boid_loop_interior(int i){
 
-	if(i!=index){
+	if(i==index){ return;}
 
-		vec4 other_posvel = boid_posvel.data[i];
+	vec4 other_posvel = boid_posvel.data[i];
 
-		float distance = distance(position, other_posvel.rg);
+	float distance = distance(position, other_posvel.rg);
 
-		if(distance < params.vision_rad){
-
-
-			num_neighbors++;
-
-			if(distance <= params.avoid_rad){
-				avoid_neighbors++;
-
-				vec2 to_add = position - other_posvel.rg;
+	if(distance < params.vision_rad){
 
 
-				//make this into a tunable variable?
-				//DANGER pls try to remove normalize
-				avoid_direction += -to_add * 9.6 + normalize(to_add) * params.avoid_rad * 10;
+		num_neighbors++;
+		average_velocity += other_posvel.ba;
+		average_position += other_posvel.rg;
 
+		if(distance < params.avoid_rad){
+			
 
-				//avoid_direction += position - b_pos;
-				avoid_velocity_ave += other_posvel.ba;
-				
+			
+						
+			float own_weight = 1.0;
+			float other_weight = 1.0;
+			//coefficient of restitution
+			float e = .5;
 
-				if(faction.data[index] % 2 != faction.data[i] % 2)
-					atomicAdd(health.data[i], -10 * params.delta_time);
-				else
-					atomicAdd(health.data[i], -1 * params.delta_time);
-				//atomicExchange(health.data[i], 0);
-				//health.data[index] = 0;
+			
 
+			vec2 normal = position - other_posvel.rg;
+			float len = length(normal);
+
+			//if overlapping, applies pseudorandom impulse
+			if (len == 0){
+				damage_calculation(i);
+				position += vec2(sin(index), cos(index));
+				return;
 			}
+			normal /= len;
 
-			average_velocity += other_posvel.ba;
-			average_position += other_posvel.rg;
+			//unstuck / sliding
+			if (len < params.avoid_rad * .95){
+				
+				avoid_velocity_ave += normal * (params.avoid_rad * 1.025 - len) * 5;
+				//position += normal * (params.avoid_rad * 1.01 - len) * params.delta_time * 5;
+				//position += normal * params.delta_time * 5;
+			}
+			
 
+			float own_vel_normal = dot(velocity, normal);
+			float other_vel_normal = dot(other_posvel.ba, normal);
+
+			
+			avoid_neighbors++;
+
+			if (own_vel_normal - other_vel_normal > 0.0){
+				avoid_velocity_ave += velocity;
+				damage_calculation(i);
+				return;
+			
+			}
+			
+			//collision formula
+			float own_vel_normal_final = (own_weight * own_vel_normal
+									+ other_weight * other_vel_normal
+									+ other_weight * e * (other_vel_normal - own_vel_normal))
+									/ (own_weight + other_weight);
+			
+			avoid_velocity_ave += velocity + (own_vel_normal_final - own_vel_normal) * normal;
+			
+
+			damage_calculation(i);
 		}
-
 	}
-
 }
 
 
