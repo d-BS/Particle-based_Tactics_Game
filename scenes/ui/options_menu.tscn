@@ -1,0 +1,219 @@
+[gd_scene format=3 uid="uid://ctr00o37vyxf4"]
+
+[ext_resource type="Script" uid="uid://5wp8wg3cvhh1" path="res://scripts/ui/options_menu.gd" id="1_ta2k2"]
+
+[node name="OptionsMenu" type="CanvasLayer" unique_id=1894412903 node_paths=PackedStringArray("crtCurveSlider", "vignette_opac", "vignette_r", "vignette_g", "vignette_b")]
+layer = 2
+follow_viewport_enabled = true
+script = ExtResource("1_ta2k2")
+crtCurveSlider = NodePath("MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/CrtCurve")
+vignette_opac = NodePath("MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/GridContainer/VignetteSlider")
+vignette_r = NodePath("MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/GridContainer/VignetteR")
+vignette_g = NodePath("MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/GridContainer/VignetteG")
+vignette_b = NodePath("MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/GridContainer/VignetteB")
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=815599849]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="PanelContainer" type="PanelContainer" parent="MarginContainer" unique_id=1446005035]
+clip_contents = true
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/PanelContainer" unique_id=371378562]
+clip_contents = false
+layout_mode = 2
+
+[node name="MarginContainer2" type="MarginContainer" parent="MarginContainer/PanelContainer/ScrollContainer" unique_id=658816851]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2" unique_id=620297990]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="OptionsTitle" type="Label" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer" unique_id=821223979]
+layout_mode = 2
+text = "Options menu
+
+"
+horizontal_alignment = 1
+
+[node name="pixelAmtLabel" type="Label" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer" unique_id=1493257032]
+layout_mode = 2
+text = "pixelation amnt"
+
+[node name="pixelAmt" type="OptionButton" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer" unique_id=326927751]
+layout_mode = 2
+selected = 2
+item_count = 3
+popup/item_0/text = "off"
+popup/item_0/id = 0
+popup/item_1/text = "x2"
+popup/item_1/id = 1
+popup/item_2/text = "x3"
+popup/item_2/id = 2
+
+[node name="AspectRatioLabel" type="Label" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer" unique_id=42021724]
+layout_mode = 2
+text = "aspect ratio"
+
+[node name="AspectRatio" type="OptionButton" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer" unique_id=168810551]
+layout_mode = 2
+selected = 0
+item_count = 3
+popup/item_0/text = "1920x1080"
+popup/item_0/id = 0
+popup/item_1/text = "umm other"
+popup/item_1/id = 1
+popup/item_2/text = "idk man"
+popup/item_2/id = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer" unique_id=993764936]
+layout_mode = 2
+
+[node name="CrtCurveLabel" type="Label" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/HBoxContainer" unique_id=1420010897]
+layout_mode = 2
+text = "Crt curve"
+
+[node name="CurveCheckButton" type="CheckButton" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/HBoxContainer" unique_id=1874552742]
+layout_mode = 2
+button_pressed = true
+
+[node name="CrtCurve" type="HSlider" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer" unique_id=331088915]
+layout_mode = 2
+min_value = 0.5
+max_value = 10.0
+step = 0.5
+value = 5.0
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer" unique_id=1131118728]
+layout_mode = 2
+
+[node name="Label5" type="Label" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/HBoxContainer2" unique_id=549973876]
+layout_mode = 2
+text = "crt vignette"
+
+[node name="VignetteCheckButton" type="CheckButton" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/HBoxContainer2" unique_id=1410167067]
+layout_mode = 2
+button_pressed = true
+
+[node name="GridContainer" type="GridContainer" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer" unique_id=821365780]
+layout_mode = 2
+columns = 2
+
+[node name="Label4" type="Label" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/GridContainer" unique_id=1848827076]
+layout_mode = 2
+text = "R"
+
+[node name="VignetteR" type="HSlider" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/GridContainer" unique_id=977562311]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+
+[node name="Label" type="Label" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/GridContainer" unique_id=1349121203]
+layout_mode = 2
+text = "G"
+
+[node name="VignetteG" type="HSlider" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/GridContainer" unique_id=1344555697]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+
+[node name="Label2" type="Label" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/GridContainer" unique_id=1748986123]
+layout_mode = 2
+text = "B"
+
+[node name="VignetteB" type="HSlider" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/GridContainer" unique_id=1095820844]
+layout_mode = 2
+
+[node name="Label3" type="Label" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/GridContainer" unique_id=1743416049]
+layout_mode = 2
+text = "A"
+
+[node name="VignetteSlider" type="HSlider" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/GridContainer" unique_id=428080037]
+layout_mode = 2
+max_value = 1.0
+step = 0.01
+value = 0.1
+
+[node name="Label6" type="Label" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer" unique_id=1344307497]
+layout_mode = 2
+text = "scan line opacity"
+
+[node name="ScanLineSlider" type="HSlider" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer" unique_id=1410788917]
+layout_mode = 2
+max_value = 1.0
+step = 0.01
+value = 0.1
+
+[node name="Label7" type="Label" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer" unique_id=347320615]
+layout_mode = 2
+text = "brightness"
+
+[node name="HSlider4" type="HSlider" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer" unique_id=55983944]
+layout_mode = 2
+
+[node name="Label8" type="Label" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer" unique_id=96053388]
+layout_mode = 2
+text = "abberation"
+
+[node name="HSlider5" type="HSlider" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer" unique_id=529218076]
+layout_mode = 2
+
+[node name="Label9" type="Label" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer" unique_id=2143685750]
+layout_mode = 2
+text = "This is sample text!"
+
+[node name="Label10" type="Label" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer" unique_id=1325518703]
+layout_mode = 2
+text = "This is sample text!"
+
+[node name="Label11" type="Label" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer" unique_id=1851892912]
+layout_mode = 2
+text = "This is sample text!"
+
+[node name="Label12" type="Label" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer" unique_id=246098899]
+layout_mode = 2
+text = "This is sample text!"
+
+[node name="Label13" type="Label" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer" unique_id=1869391790]
+layout_mode = 2
+text = "This is sample text!"
+
+[node name="Label14" type="Label" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer" unique_id=906696275]
+layout_mode = 2
+text = "This is sample text!"
+
+[node name="Label15" type="Label" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer" unique_id=37894141]
+layout_mode = 2
+text = "This is sample text!"
+
+[node name="Label16" type="Label" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer" unique_id=1933135624]
+layout_mode = 2
+text = "This is sample text!"
+
+[node name="Label17" type="Label" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer" unique_id=1769784848]
+layout_mode = 2
+text = "This is sample text!"
+
+[connection signal="item_selected" from="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/pixelAmt" to="." method="_on_pixel_amt_item_selected"]
+[connection signal="toggled" from="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/HBoxContainer/CurveCheckButton" to="." method="_on_curve_check_button_toggled"]
+[connection signal="value_changed" from="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/CrtCurve" to="." method="_on_crt_curve_value_changed"]
+[connection signal="toggled" from="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/HBoxContainer2/VignetteCheckButton" to="." method="_on_vignette_check_button_toggled"]
+[connection signal="value_changed" from="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/GridContainer/VignetteR" to="." method="_on_vignette_r_value_changed"]
+[connection signal="value_changed" from="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/GridContainer/VignetteG" to="." method="_on_vignette_g_value_changed"]
+[connection signal="value_changed" from="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/GridContainer/VignetteB" to="." method="_on_vignette_b_value_changed"]
+[connection signal="value_changed" from="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/GridContainer/VignetteSlider" to="." method="_on_vignette_slider_value_changed"]
+[connection signal="value_changed" from="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/ScanLineSlider" to="." method="_on_scan_line_slider_value_changed"]

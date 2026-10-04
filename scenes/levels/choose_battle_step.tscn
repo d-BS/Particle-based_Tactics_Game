@@ -1,0 +1,36 @@
+[gd_scene format=3 uid="uid://d18ljckeew1qr"]
+
+[ext_resource type="Script" uid="uid://pmu4umqt5378" path="res://scripts/ui/choose_battle_step.gd" id="1_un1hr"]
+
+[node name="ChooseBattleStep" type="Node" unique_id=1893188571]
+script = ExtResource("1_un1hr")
+
+[node name="CenterContainer" type="CenterContainer" parent="." unique_id=1440379572]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer" unique_id=475341736]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="CenterContainer/VBoxContainer" unique_id=1561078712]
+layout_mode = 2
+text = "Here we choose the next battle between 3(?)"
+
+[node name="Button" type="Button" parent="CenterContainer/VBoxContainer" unique_id=519140218]
+layout_mode = 2
+text = "Choice 1"
+
+[node name="Button2" type="Button" parent="CenterContainer/VBoxContainer" unique_id=727901542]
+layout_mode = 2
+text = "2"
+
+[node name="Button3" type="Button" parent="CenterContainer/VBoxContainer" unique_id=426269558]
+layout_mode = 2
+text = "3"
+
+[connection signal="pressed" from="CenterContainer/VBoxContainer/Button" to="." method="_on_button_pressed"]
+[connection signal="pressed" from="CenterContainer/VBoxContainer/Button2" to="." method="_on_button_2_pressed"]
+[connection signal="pressed" from="CenterContainer/VBoxContainer/Button3" to="." method="_on_button_3_pressed"]

@@ -33,3 +33,10 @@ func _on_button_start_pressed() -> void:
 	Global.set_scene("res://scenes/levels/battle.tscn")
 	
 	pass # Replace with function body.
+
+
+func _on_button_step_pressed() -> void:
+	
+	Global.set_scene("res://scenes/levels/start_run_step.tscn")
+	
+	pass # Replace with function body.

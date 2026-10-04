@@ -271,9 +271,11 @@ void boid_loop_interior(int i){
 			normal /= len;
 
 			//unstuck / sliding
-			if (len < params.avoid_rad * .95){
+			if (len < params.avoid_rad){
 				
-				avoid_velocity_ave += normal * (params.avoid_rad * 1.025 - len) * 5;
+				//I think this is how this should include weight, but I'm not sure
+				avoid_velocity_ave += normal * (params.avoid_rad - len) * 5 * (2*other_weight/(other_weight+own_weight));
+
 				//position += normal * (params.avoid_rad * 1.01 - len) * params.delta_time * 5;
 				//position += normal * params.delta_time * 5;
 			}

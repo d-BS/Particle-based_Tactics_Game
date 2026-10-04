@@ -1,0 +1,26 @@
+[gd_scene format=3 uid="uid://dwpffxte3oyw3"]
+
+[ext_resource type="Script" uid="uid://jjo4nu412umj" path="res://scripts/ui/start_run_step.gd" id="1_7m4ms"]
+
+[node name="StartRunStep" type="Node" unique_id=750728454]
+script = ExtResource("1_7m4ms")
+
+[node name="CenterContainer" type="CenterContainer" parent="." unique_id=848969652]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer" unique_id=1516615681]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="CenterContainer/VBoxContainer" unique_id=1303456670]
+layout_mode = 2
+text = "Here we choose our starting loadout (?)"
+
+[node name="Button" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1961523951]
+layout_mode = 2
+text = "Step"
+
+[connection signal="pressed" from="CenterContainer/VBoxContainer/Button" to="." method="_on_button_pressed"]

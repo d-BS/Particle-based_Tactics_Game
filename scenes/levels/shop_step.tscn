@@ -1,0 +1,31 @@
+[gd_scene format=3 uid="uid://bj7qw3nme7b1v"]
+
+[ext_resource type="Script" uid="uid://cg7fjmgvv5uxc" path="res://scripts/ui/shop_step.gd" id="1_b5be3"]
+
+[node name="ShopStep" type="Node" unique_id=1010857253]
+script = ExtResource("1_b5be3")
+
+[node name="CenterContainer" type="CenterContainer" parent="." unique_id=368696589]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer" unique_id=1136596938]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="CenterContainer/VBoxContainer" unique_id=44224399]
+layout_mode = 2
+text = "This is the shop state"
+
+[node name="BuyThing" type="Button" parent="CenterContainer/VBoxContainer" unique_id=907945553]
+layout_mode = 2
+text = "Buy thing"
+
+[node name="Continue" type="Button" parent="CenterContainer/VBoxContainer" unique_id=578188853]
+layout_mode = 2
+text = "Continue"
+
+[connection signal="pressed" from="CenterContainer/VBoxContainer/BuyThing" to="." method="_on_buy_thing_pressed"]
+[connection signal="pressed" from="CenterContainer/VBoxContainer/Continue" to="." method="_on_continue_pressed"]

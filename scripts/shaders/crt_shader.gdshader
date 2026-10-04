@@ -17,8 +17,9 @@ uniform sampler2D SCREEN_TEXTURE : hint_screen_texture, filter_linear_mipmap;
 uniform vec2 curve_factor= vec2(1, 1);
 uniform vec2 screen_size = vec2(640, 360);
 uniform bool show_curvature = true;
-uniform vec4 corner_color;
+uniform vec3 corner_color;
 uniform bool show_vignette = true;
+uniform vec3 vignette_color = vec3(0, 0, 0);
 uniform float vignette_opacity : hint_range(0.0, 1.0, 0.01) = 0.2;
 uniform bool show_horizontal_scan_lines = true;
 uniform float horizontal_scan_lines_amount : hint_range(0.0, 180.0, 0.1) = 180.0;
@@ -57,7 +58,7 @@ void fragment() {
 	if (show_vignette) {
 		float vignette = uv.x * uv.y * (1.0 - uv.x) * (1.0 - uv.y);
 		vignette = clamp(pow((screen_size.x / 4.0) * vignette, vignette_opacity), 0.0, 1.0);
-		color *= vignette;
+		color *= vignette_color + (vec3(1, 1, 1) - vignette_color) * vignette;
 	}
 
 	if (show_horizontal_scan_lines) {
@@ -82,7 +83,7 @@ void fragment() {
 
 	// Fill the blank space of the corners, left by the curvature, with black.
 	if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
-		color = corner_color.rgb;
+		color = corner_color;
 	}
 	
 	else if (aberration_amount > 0.0) {

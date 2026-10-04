@@ -1,0 +1,35 @@
+[gd_scene format=3 uid="uid://stm658rmi8w4"]
+
+[ext_resource type="Script" uid="uid://b55awmpxeubbx" path="res://scripts/ui/battle_step.gd" id="1_j5qlc"]
+
+[node name="BattleStep" type="Node" unique_id=493453066]
+script = ExtResource("1_j5qlc")
+
+[node name="CenterContainer" type="CenterContainer" parent="." unique_id=660833551]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer" unique_id=1742996015]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="CenterContainer/VBoxContainer" unique_id=142999100]
+layout_mode = 2
+text = "This is the battle state"
+
+[node name="WinCon" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1710693980]
+layout_mode = 2
+text = "Win con"
+
+[node name="RetreatCon" type="Button" parent="CenterContainer/VBoxContainer" unique_id=334827919]
+layout_mode = 2
+text = "Retreat con"
+
+[node name="LossCon" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1279182258]
+layout_mode = 2
+text = "loss con"
+
+[connection signal="pressed" from="CenterContainer/VBoxContainer/WinCon" to="." method="_on_win_con_pressed"]
+[connection signal="pressed" from="CenterContainer/VBoxContainer/LossCon" to="." method="_on_loss_con_pressed"]

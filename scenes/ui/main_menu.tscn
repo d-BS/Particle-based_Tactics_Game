@@ -68,11 +68,15 @@ theme_override_constants/separation = 5
 layout_mode = 2
 tooltip_text = "Start simulation"
 theme = ExtResource("1_fe2o3")
-text = "Start"
+text = "Start sim"
+
+[node name="Button3" type="Button" parent="CenterContainer/VBoxContainer/MarginContainer/HBoxContainer/MarginContainer2/VBoxContainer" unique_id=2145213960]
+layout_mode = 2
+text = "Step through gamestates"
 
 [node name="Button2" type="Button" parent="CenterContainer/VBoxContainer/MarginContainer/HBoxContainer/MarginContainer2/VBoxContainer" unique_id=1701246757]
 layout_mode = 2
-text = "Exit"
+text = "Quit"
 
 [node name="MarginContainer" type="MarginContainer" parent="CenterContainer/VBoxContainer/MarginContainer/HBoxContainer" unique_id=1351531765]
 layout_mode = 2
@@ -101,4 +105,5 @@ alignment = 2
 suffix = "units"
 
 [connection signal="pressed" from="CenterContainer/VBoxContainer/MarginContainer/HBoxContainer/MarginContainer2/VBoxContainer/Button" to="." method="_on_button_start_pressed"]
+[connection signal="pressed" from="CenterContainer/VBoxContainer/MarginContainer/HBoxContainer/MarginContainer2/VBoxContainer/Button3" to="." method="_on_button_step_pressed"]
 [connection signal="pressed" from="CenterContainer/VBoxContainer/MarginContainer/HBoxContainer/MarginContainer2/VBoxContainer/Button2" to="." method="_on_button_exit_pressed"]
