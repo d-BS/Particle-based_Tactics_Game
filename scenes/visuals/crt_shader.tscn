@@ -12,12 +12,11 @@ shader_parameter/show_vignette = true
 shader_parameter/vignette_color = Vector3(0, 0, 0)
 shader_parameter/vignette_opacity = 0.2
 shader_parameter/show_horizontal_scan_lines = true
-shader_parameter/horizontal_scan_lines_amount = 180.0
 shader_parameter/horizontal_scan_lines_opacity = 0.0999999977648
 shader_parameter/show_vertical_scan_lines = false
 shader_parameter/vertical_scan_lines_amount = 320.0
 shader_parameter/vertical_scan_lines_opacity = 0.02
-shader_parameter/boost = 1.3999999910592
+shader_parameter/boost = 1.0
 shader_parameter/aberration_amount = 0.999999977648
 
 [node name="CrtShader" type="CanvasLayer" unique_id=299937217]

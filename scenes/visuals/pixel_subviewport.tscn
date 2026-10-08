@@ -1,15 +1,27 @@
 [gd_scene format=3 uid="uid://kcy8u6uf51ey"]
 
-[node name="PixelSubviewportContainer" type="SubViewportContainer" unique_id=1595185932]
+[ext_resource type="Shader" uid="uid://dhw681ot0eisc" path="res://scripts/shaders/pixel_subviewport.gdshader" id="1_8kfe6"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_4sp5u"]
+shader = ExtResource("1_8kfe6")
+shader_parameter/noise_intensity = 0.1
+
+[node name="PixelRatio" type="AspectRatioContainer" unique_id=1181980103]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+ratio = 1.7778
+stretch_mode = 3
+
+[node name="PixelSubviewportContainer" type="SubViewportContainer" parent="." unique_id=1595185932]
+layout_mode = 2
 stretch = true
 stretch_shrink = 3
+mouse_target = true
 
-[node name="SubViewport" type="SubViewport" parent="." unique_id=916614257]
+[node name="SubViewport" type="SubViewport" parent="PixelSubviewportContainer" unique_id=916614257]
 disable_3d = true
 handle_input_locally = false
 snap_2d_transforms_to_pixel = true
@@ -18,3 +30,17 @@ canvas_item_default_texture_filter = 0
 audio_listener_enable_2d = true
 size = Vector2i(640, 360)
 render_target_update_mode = 4
+
+[node name="PixelFX" type="CanvasLayer" parent="PixelSubviewportContainer/SubViewport" unique_id=138190812]
+layer = 1025
+
+[node name="PixelShader" type="ColorRect" parent="PixelSubviewportContainer/SubViewport/PixelFX" unique_id=347365127]
+z_index = 1024
+z_as_relative = false
+material = SubResource("ShaderMaterial_4sp5u")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2

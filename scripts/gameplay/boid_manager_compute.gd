@@ -133,10 +133,8 @@ var rd : RenderingDevice
 var boid_compute_shader : RID
 var pipeline : RID
 
-var bindings_0 : Array
-var bindings_1 : Array
-var uniform_set_0 : RID
-var uniform_set_1 : RID
+var bindings : Array
+var uniform_set : RID
 
 #buffers
 var boid_posvel_buffer : RID
@@ -144,8 +142,7 @@ var boid_posvel_buffer : RID
 var squad_bias_buffer:RID
 var bin_matrix_buffer : RID
 var bin_next_buffer : RID
-var params_buffer_0 : RID
-var params_buffer_1 : RID
+var params_buffer : RID
 var boid_data_buffer : RID
 
 var health_buffer : RID
@@ -157,8 +154,7 @@ var boid_posvel_uniform : RDUniform
 var squad_bias_uniform : RDUniform
 var bin_matrix_uniform : RDUniform
 var bin_next_uniform : RDUniform
-var params_uniform_0 : RDUniform
-var params_uniform_1 : RDUniform
+var params_uniform : RDUniform
 var boid_data_buffer_uniform : RDUniform
 
 var health_uniform : RDUniform
@@ -197,6 +193,7 @@ func setup(start_zone:Rect2, num_units:int, enemy_zone:Rect2, num_enemies:int):
 	
 	num_boids = num_units + num_enemies
 	
+	#DANGER not really actually, im just not sure if 128 is the right number
 	num_workgroups = ceil(num_boids / 128.0)
 	
 	#smallest square which will hold num_boids
@@ -344,10 +341,11 @@ func _draw() -> void:
 func _update_boids_gpu(delta):
 	
 	#reset perameters each frame
-	rd.free_rid(params_buffer_1)
-	params_buffer_1 = _generate_parameter_buffer(delta, 1)
-	params_uniform_1.clear_ids()
-	params_uniform_1.add_id(params_buffer_1)
+	#DANGER no longer neccisary, as we have moved dtime to a push constant
+	rd.free_rid(params_buffer)
+	params_buffer = _generate_parameter_buffer(delta, 1)
+	params_uniform.clear_ids()
+	params_uniform.add_id(params_buffer)
 	
 	
 	#clears bin buffers
@@ -362,17 +360,18 @@ func _update_boids_gpu(delta):
 	_update_health_buffer()
 	
 	
-	uniform_set_0 = rd.uniform_set_create(bindings_0, boid_compute_shader, 0)
-	
-	uniform_set_1 = rd.uniform_set_create(bindings_1, boid_compute_shader, 0)
+	uniform_set = rd.uniform_set_create(bindings, boid_compute_shader, 0)
 	
 	
 	
 	var compute_list := rd.compute_list_begin()
 	rd.compute_list_bind_compute_pipeline(compute_list, pipeline)
-	rd.compute_list_bind_uniform_set(compute_list, uniform_set_0, 0)
+	rd.compute_list_bind_uniform_set(compute_list, uniform_set, 0)
 	
-	#DANGER not really actually, im just not sure if 128 is the right number
+	#pass 0 setup
+	var pass_0_bytes = PackedInt32Array([0]).to_byte_array()
+	pass_0_bytes.append_array(PackedFloat32Array([delta]).to_byte_array())
+	rd.compute_list_set_push_constant(compute_list, pass_0_bytes, pass_0_bytes.size())
 	
 	#first pass, does binning
 	rd.compute_list_dispatch(compute_list, num_workgroups, 1, 1)
@@ -382,9 +381,12 @@ func _update_boids_gpu(delta):
 	rd.compute_list_add_barrier(compute_list)
 	
 	
-	#second pass
+	#second pass setup
+	var pass_1_bytes = PackedInt32Array([1]).to_byte_array()
+	pass_1_bytes.append_array(PackedFloat32Array([delta]).to_byte_array())
+	rd.compute_list_set_push_constant(compute_list, pass_1_bytes, pass_1_bytes.size())
 	
-	rd.compute_list_bind_uniform_set(compute_list, uniform_set_1, 0)
+	#rd.compute_list_bind_uniform_set(compute_list, uniform_set_1, 0)
 	rd.compute_list_dispatch(compute_list, num_workgroups, 1, 1)
 	
 	
@@ -398,50 +400,66 @@ func _sync_boids_gpu():
 	pass
 func _update_data_texture():
 	
+	# times are assuming 200_000 units
+	# most of these take longer for first few frames for some reason
+	
+	# ~800 - 900 mcs
+	var boid_data_image_data:PackedByteArray = rd.texture_get_data(boid_data_buffer, 0)
+	
+	# ~ 500 - 800 mcs
+	boid_data.set_data(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RGBAF, boid_data_image_data)
+	
+	# ~ 500 mcs
+	var temp:ImageTexture = boid_data_texture_prev
+	boid_data_texture_prev = boid_data_texture
+	boid_data_texture = temp
+	boid_data_texture.update(boid_data)
+	
+	# ~ 15 mcs
+	$boid_particles.process_material.set_shader_parameter("boid_data", boid_data_texture)
+	$boid_particles.process_material.set_shader_parameter("boid_data_prev", boid_data_texture_prev)
+	
+	#updates boid_pos_active
+	# ~500-600 mcs
+	boid_data_image_data = boid_data_image_data.slice(0, num_boids * 16)
+	# ~1200-1600 mcs
+	boid_pos_active = boid_data_image_data.to_vector4_array()
+	# ~300 mcs
+	rd.buffer_update(boid_posvel_buffer, 0, boid_data_image_data.size(), boid_data_image_data)
+	
+	#updates health
+	# ~1000-6000 mcs
+	health_bytes = rd.buffer_get_data(health_buffer, 0, health_bytes.size())
+	# ~200-900 mcs
+	health = health_bytes.to_float32_array()
+	# ~1 mcs (if no deletions), ~500 (if large swaths deleted)
+	health_img.set_data(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RF, health_bytes)
+	# ~90-400 mcs
+	health_tex.update(health_img)
 	
 	
 	
 	#var start_time = Time.get_ticks_usec()
 	
 	
-	var boid_data_image_data:PackedByteArray = rd.texture_get_data(boid_data_buffer, 0)
-	
 	
 	
 	#var end_time = Time.get_ticks_usec()
 	#var total_time = end_time - start_time
 	
-	#if(Engine.get_frames_drawn() % 100 == 0):
+	#if(Engine.get_physics_frames() % 50 == 0):
 	#	print("Code took: ", total_time, " microseconds")
 	#	pass
 	
 	
-	boid_data.set_data(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RGBAF, boid_data_image_data)
-	
-	var temp:ImageTexture = boid_data_texture_prev
-	boid_data_texture_prev = boid_data_texture
-	boid_data_texture = temp
-	boid_data_texture.update(boid_data)
-	$boid_particles.process_material.set_shader_parameter("boid_data", boid_data_texture)
-	$boid_particles.process_material.set_shader_parameter("boid_data_prev", boid_data_texture_prev)
 	
 	
-	#updates boid_pos_active
-	boid_data_image_data = boid_data_image_data.slice(0, num_boids * 16)
-	boid_pos_active = boid_data_image_data.to_vector4_array()
-	rd.buffer_update(boid_posvel_buffer, 0, boid_data_image_data.size(), boid_data_image_data)
-	
-	#updates health
-	health_bytes = rd.buffer_get_data(health_buffer, 0, health_bytes.size())
-	health = health_bytes.to_float32_array()
-	
-	health_img.set_data(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RF, health_bytes)
-	health_tex.update(health_img)
-	#var health_img = Image.create_from_data(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RF, health_bytes)
-	#var health_tex = ImageTexture.create_from_image()
 	
 	
-	#$boid_particles.process_material.set_shader_parameter("boid_data", boid_data_address)
+	
+	
+	
+	
 	
 	
 	pass
@@ -493,12 +511,9 @@ func _setup_compute_shader():
 	bin_next_buffer = _generate_int_array_buffer(bin_next_bytes)
 	bin_next_uniform = _generate_uniform(bin_next_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 4)
 	
-	params_buffer_0 = _generate_parameter_buffer(0, 0)
-	params_uniform_0 = _generate_uniform(params_buffer_0, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 5)
-	
-	params_buffer_1 = _generate_parameter_buffer(0, 1)
-	params_uniform_1 = _generate_uniform(params_buffer_1, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 5)
-	
+	params_buffer = _generate_parameter_buffer(0, 0)
+	params_uniform = _generate_uniform(params_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 5)
+		
 	health_buffer = rd.storage_buffer_create(health_bytes.size(), health_bytes)
 	health_uniform = _generate_uniform(health_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 6)
 	
@@ -506,9 +521,8 @@ func _setup_compute_shader():
 	factions_uniform = _generate_uniform(factions_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 7)
 	
 	
-	bindings_0 = [boid_data_buffer_uniform, boid_posvel_uniform, squad_bias_uniform, bin_matrix_uniform, bin_next_uniform, params_uniform_0, health_uniform, factions_uniform]
-	bindings_1 = [boid_data_buffer_uniform, boid_posvel_uniform, squad_bias_uniform, bin_matrix_uniform, bin_next_uniform, params_uniform_1, health_uniform, factions_uniform]
-	
+	bindings = [boid_data_buffer_uniform, boid_posvel_uniform, squad_bias_uniform, bin_matrix_uniform, bin_next_uniform, params_uniform, health_uniform, factions_uniform]
+
 func _generate_vec_buffer(data):
 	var data_buffer_bytes:PackedByteArray = data.to_byte_array()
 	var data_buffer = rd.storage_buffer_create(data_buffer_bytes.size(), data_buffer_bytes)
@@ -545,9 +559,10 @@ func _generate_parameter_buffer(delta, pass_number):
 		separation_factor,
 		damp_factor,
 		
+		#currently unused - replace w weight+coeff of rest
 		pass_number,
-		
-		delta]).to_byte_array()
+		delta
+		]).to_byte_array()
 	
 	return rd.storage_buffer_create(params_buffer_bytes.size(), params_buffer_bytes)
 
@@ -558,8 +573,7 @@ func _exit_tree():
 	
 	
 	rd.free_rid(boid_data_buffer)
-	rd.free_rid(params_buffer_0)
-	rd.free_rid(params_buffer_1)
+	rd.free_rid(params_buffer)
 	rd.free_rid(boid_posvel_buffer)
 	rd.free_rid(pipeline)
 	rd.free_rid(boid_compute_shader)
@@ -689,8 +703,7 @@ func _update_squad_bias_uniform():
 	
 	squad_bias_buffer = _generate_vec_buffer(squad_biases)
 	squad_bias_uniform = _generate_uniform(squad_bias_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 2)
-	bindings_0[2] = squad_bias_uniform
-	bindings_1[2] = squad_bias_uniform
+	bindings[2] = squad_bias_uniform
 	
 	
 	update_squad_bias_uniform = false

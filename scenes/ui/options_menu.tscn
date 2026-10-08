@@ -2,15 +2,15 @@
 
 [ext_resource type="Script" uid="uid://5wp8wg3cvhh1" path="res://scripts/ui/options_menu.gd" id="1_ta2k2"]
 
-[node name="OptionsMenu" type="CanvasLayer" unique_id=1894412903 node_paths=PackedStringArray("crtCurveSlider", "vignette_opac", "vignette_r", "vignette_g", "vignette_b")]
+[node name="OptionsMenu" type="CanvasLayer" unique_id=1894412903 node_paths=PackedStringArray("crtCurveSlider", "vignette_opac", "vignette_r", "vignette_g", "vignette_b", "pixel_selector")]
 layer = 2
-follow_viewport_enabled = true
 script = ExtResource("1_ta2k2")
 crtCurveSlider = NodePath("MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/CrtCurve")
 vignette_opac = NodePath("MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/GridContainer/VignetteSlider")
 vignette_r = NodePath("MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/GridContainer/VignetteR")
 vignette_g = NodePath("MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/GridContainer/VignetteG")
 vignette_b = NodePath("MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/GridContainer/VignetteB")
+pixel_selector = NodePath("MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/pixelAmt")
 
 [node name="MarginContainer" type="MarginContainer" parent="." unique_id=815599849]
 anchors_preset = 15
@@ -52,18 +52,34 @@ horizontal_alignment = 1
 
 [node name="pixelAmtLabel" type="Label" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer" unique_id=1493257032]
 layout_mode = 2
-text = "pixelation amnt"
+text = "pixelation factor"
 
 [node name="pixelAmt" type="OptionButton" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer" unique_id=326927751]
 layout_mode = 2
 selected = 2
-item_count = 3
+item_count = 11
 popup/item_0/text = "off"
-popup/item_0/id = 0
+popup/item_0/id = 1
 popup/item_1/text = "x2"
-popup/item_1/id = 1
-popup/item_2/text = "x3"
-popup/item_2/id = 2
+popup/item_1/id = 2
+popup/item_2/text = "x3 (Recommended)"
+popup/item_2/id = 3
+popup/item_3/text = "x4"
+popup/item_3/id = 4
+popup/item_4/text = "x5"
+popup/item_4/id = 5
+popup/item_5/text = "x6"
+popup/item_5/id = 6
+popup/item_6/text = "x7"
+popup/item_6/id = 7
+popup/item_7/text = "x8"
+popup/item_7/id = 8
+popup/item_8/text = "x9"
+popup/item_8/id = 9
+popup/item_9/text = "x10"
+popup/item_9/id = 10
+popup/item_10/text = "x120"
+popup/item_10/id = 120
 
 [node name="AspectRatioLabel" type="Label" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer" unique_id=42021724]
 layout_mode = 2
@@ -162,19 +178,27 @@ value = 0.1
 layout_mode = 2
 text = "brightness"
 
-[node name="HSlider4" type="HSlider" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer" unique_id=55983944]
+[node name="BrightnessSlider" type="HSlider" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer" unique_id=55983944]
 layout_mode = 2
 
 [node name="Label8" type="Label" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer" unique_id=96053388]
 layout_mode = 2
 text = "abberation"
 
-[node name="HSlider5" type="HSlider" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer" unique_id=529218076]
+[node name="AbberationSlider" type="HSlider" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer" unique_id=529218076]
 layout_mode = 2
+max_value = 5.0
+value = 1.0
 
 [node name="Label9" type="Label" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer" unique_id=2143685750]
 layout_mode = 2
-text = "This is sample text!"
+text = "Static intensity"
+
+[node name="StaticSlider" type="HSlider" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer" unique_id=519081886]
+layout_mode = 2
+max_value = 1.0
+step = 0.01
+value = 0.1
 
 [node name="Label10" type="Label" parent="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer" unique_id=1325518703]
 layout_mode = 2
@@ -217,3 +241,5 @@ text = "This is sample text!"
 [connection signal="value_changed" from="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/GridContainer/VignetteB" to="." method="_on_vignette_b_value_changed"]
 [connection signal="value_changed" from="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/GridContainer/VignetteSlider" to="." method="_on_vignette_slider_value_changed"]
 [connection signal="value_changed" from="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/ScanLineSlider" to="." method="_on_scan_line_slider_value_changed"]
+[connection signal="value_changed" from="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/AbberationSlider" to="." method="_on_abberation_slider_value_changed"]
+[connection signal="value_changed" from="MarginContainer/PanelContainer/ScrollContainer/MarginContainer2/VBoxContainer/StaticSlider" to="." method="_on_static_slider_value_changed"]

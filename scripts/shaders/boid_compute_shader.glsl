@@ -14,6 +14,11 @@
 
 layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
 
+layout(push_constant) uniform PushConstants {
+	int pass_num;
+	float delta_time;
+} rc;
+
 
 //image out
 layout(set = 0, rgba32f, binding = 0) restrict writeonly uniform image2D boid_data;
@@ -40,8 +45,7 @@ layout(set = 0, binding = 4, std430) restrict buffer BinNext{
 	int data[];
 } bin_next;
 
-//parameter buffer
-layout(set = 0, binding = 5, std430) restrict buffer Params{
+struct Parameters {
 	float num_boids;
     float image_size;
     float vision_rad;
@@ -59,11 +63,26 @@ layout(set = 0, binding = 5, std430) restrict buffer Params{
     float avoidance_factor;
     float damp_factor;
 
-	
+	//currently unused - change to weight and coefficient of restitution
 	float pass_number;
-
     float delta_time;
-} params;
+};
+
+//parameter buffer
+layout(set = 0, binding = 5, std430) restrict buffer Params{
+
+	Parameters params;
+} ;
+
+
+//Faction-based parameters:
+
+//layout(set = 0, binding = 5, std430) restrict buffer Params{
+//	Parameters params[];
+//} ;
+
+
+
 
 //weight
 //float sleep_cutoff;
@@ -131,11 +150,20 @@ void main() {
 	}
 
 
+	switch(rc.pass_num){
 
-	if (params.pass_number == 0.0)
-		binning_pass();
-	else if(params.pass_number == 1.0)
-		boid_physics_pass();
+		case 0:
+			binning_pass();
+			break;
+		case 1:
+			boid_physics_pass();
+	}
+
+
+	//if (params.pass_number == 0.0)
+	//	binning_pass();
+	//else if(params.pass_number == 1.0)
+	//	boid_physics_pass();
 
 		
 
@@ -174,10 +202,10 @@ void boid_physics_pass() {
 	if (num_neighbors > 0 ){
 
 		//this causes groups to go faster whn alignment_factor is positive
-		velocity += (average_velocity / num_neighbors) * params.alignment_factor * params.delta_time;
+		velocity += (average_velocity / num_neighbors) * params.alignment_factor * rc.delta_time;
 
 		//applies average position
-		velocity += (average_position / num_neighbors - position) * params.cohesion_factor * params.delta_time;
+		velocity += (average_position / num_neighbors - position) * params.cohesion_factor * rc.delta_time;
 	}
 
 	if(avoid_neighbors != 0){
@@ -202,12 +230,12 @@ void boid_physics_pass() {
 
 		//ridiculous degrees of magic numbers
 		if(bias != vec2(0,0) && (bias.x*bias.x + bias.y*bias.y) > bias_cutoff_squared)
-			velocity += normalize(bias) * params.delta_time * 50;
+			velocity += normalize(bias) * rc.delta_time * 50;
 
 	}
 
 	//applies damping
-	velocity /= 1 + params.damp_factor * params.delta_time;
+	velocity /= 1 + params.damp_factor * rc.delta_time;
 
 
 	//if velocity < sleep cutoff and avg_vel < sleep cutoff
@@ -215,7 +243,7 @@ void boid_physics_pass() {
 
 
 	
-	position += velocity * params.delta_time;
+	position += velocity * rc.delta_time;
 
 	storeImage();
 }
@@ -225,9 +253,9 @@ void damage_calculation(uint i){
 
 	//damage calculation will go here
 	if(faction.data[index] % 2 != faction.data[i] % 2)
-		atomicAdd(health.data[i], -10 * params.delta_time);
+		atomicAdd(health.data[i], -10 * rc.delta_time);
 	else
-		atomicAdd(health.data[i], -1 * params.delta_time);
+		atomicAdd(health.data[i], -1 * rc.delta_time);
 }
 
 

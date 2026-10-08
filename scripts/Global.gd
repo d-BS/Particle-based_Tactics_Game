@@ -69,7 +69,7 @@ func setup_crt_shader():
 	
 	add_global_node("res://scenes/visuals/pixel_subviewport.tscn")
 	game_root.remove_child.call_deferred(current_scene)
-	game_root = $PixelSubviewportContainer/SubViewport
+	game_root = $PixelRatio/PixelSubviewportContainer/SubViewport
 	game_root.add_child.call_deferred(current_scene)
 	game_root.gui_embed_subwindows = true
 	
@@ -81,10 +81,24 @@ func set_crt_parameter(parameter:String, value):
 	
 	$CrtShader/ColorRect.material.set_shader_parameter(parameter, value)
 	
+func get_crt_parameter(parameter:String) -> Variant:
+	
+	return $CrtShader/ColorRect.material.get_shader_parameter(parameter)
+
+func set_pixel_parameter(parameter:String, value):
+	
+	game_root.get_node("PixelFX/PixelShader").material.set_shader_parameter(parameter, value)
+
+func get_pixel_parameter(parameter:String) -> Variant:
+	
+	return game_root.get_node("PixelFX/PixelShader").material.get_shader_parameter(parameter)
 
 
 ## will probably add more stuff to here later
 func set_pixelation(pixel_factor:int):
 	
-	get_node("PixelSubviewportContainer").stretch_shrink = pixel_factor
+	get_node("PixelRatio/PixelSubviewportContainer").stretch_shrink = pixel_factor
+	set_crt_parameter("screen_size", get_window().content_scale_size / pixel_factor)
+	
+	
 	

@@ -7,6 +7,8 @@ extends CanvasLayer
 @export var vignette_g: HSlider
 @export var vignette_b: HSlider
 
+@export var pixel_selector: OptionButton
+
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
 	pass # Replace with function body.
@@ -20,7 +22,8 @@ func _process(delta: float) -> void:
 
 func _on_pixel_amt_item_selected(index: int) -> void:
 	
-	Global.set_pixelation(index + 1)
+	Global.set_pixelation(pixel_selector.get_item_id(index))
+	
 	
 	pass # Replace with function body.
 
@@ -82,7 +85,24 @@ func _on_scan_line_slider_value_changed(value: float) -> void:
 	
 	pass # Replace with function body.
 
+
+
+
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("esc"):
 		Global.pop_scene()
 		get_child(0).accept_event()
+
+
+func _on_static_slider_value_changed(value: float) -> void:
+	
+	Global.set_pixel_parameter("noise_intensity", value)
+	
+	pass # Replace with function body.
+
+
+func _on_abberation_slider_value_changed(value: float) -> void:
+	
+	Global.set_crt_parameter("aberration_amount", value)
+	
+	pass # Replace with function body.

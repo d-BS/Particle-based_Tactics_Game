@@ -22,7 +22,6 @@ uniform bool show_vignette = true;
 uniform vec3 vignette_color = vec3(0, 0, 0);
 uniform float vignette_opacity : hint_range(0.0, 1.0, 0.01) = 0.2;
 uniform bool show_horizontal_scan_lines = true;
-uniform float horizontal_scan_lines_amount : hint_range(0.0, 180.0, 0.1) = 180.0;
 uniform float horizontal_scan_lines_opacity : hint_range(0.0, 1.0, 0.01) = .1;
 uniform bool show_vertical_scan_lines = false;
 uniform float vertical_scan_lines_amount : hint_range(0.0, 320.0, 0.1) = 320.0;
@@ -41,6 +40,13 @@ vec2 apply_curve(vec2 uv){
     return (uv + uv * offset * offset) * 0.5 + 0.5;
 }
 
+
+
+//Prime 1: 611953
+//Prime 2: 106859
+//Prime 3: 1000047119
+
+
 float avg(float a, float b){return (a+b)/2.0;}
 
 void vertex() {
@@ -51,6 +57,7 @@ void vertex() {
 void fragment() {
 	// Called for every pixel the material is visible on.
 	
+	float a = 1.0;
 	vec2 uv = apply_curve(UV);
 	vec2 screen_uv = apply_curve(SCREEN_UV);
 	vec3 color = texture(SCREEN_TEXTURE, screen_uv).rgb;
@@ -61,26 +68,13 @@ void fragment() {
 		color *= vignette_color + (vec3(1, 1, 1) - vignette_color) * vignette;
 	}
 
-	if (show_horizontal_scan_lines) {
-		float s = sin(screen_uv.y * horizontal_scan_lines_amount * PI * 2.0);
-		//s = (s * 0.5 + 0.5) * 0.9 + 0.1;
-		
-		s = clamp((s) * 2.0, 0.01, 1.0);
-		
-		color.rgb *= pow(s, horizontal_scan_lines_opacity);
-	}
-
-	if (show_vertical_scan_lines) {
-		float s = sin(screen_uv.x * vertical_scan_lines_amount * PI * 2.0);
-		//s = (s * 0.5 + 0.5) * 0.9 + 0.1;
-		s = clamp((s) * 2.0, 0.01, 1.0);
-		color.rgb *= pow(s, vertical_scan_lines_opacity);
-	}
+	
 
 	if (show_horizontal_scan_lines || show_vertical_scan_lines) {
 		color *= boost;
 	}
-
+	
+	
 	// Fill the blank space of the corners, left by the curvature, with black.
 	if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
 		color = corner_color;
@@ -94,7 +88,22 @@ void fragment() {
 		color.b = avg(texture(SCREEN_TEXTURE, vec2(screen_uv.x - adjusted_amount, screen_uv.y)).b, color.b);
 	}
 	
-	COLOR = vec4(color, 1.0);
+	if (show_horizontal_scan_lines) {
+		
+		//gets proper # of lines
+		float horizontal_scan_lines_amount = (screen_size.y) * 2.0;
+		
+		//groups into lines - also shifts lines very slightly up
+		//to cover any seams
+		float s = floor(uv.y * horizontal_scan_lines_amount + .1);
+		
+		if(int(s) % 2 == 0){
+			color *= 1.0 - horizontal_scan_lines_opacity;
+		}
+	}
+	
+	
+	COLOR = vec4(color, a);
 }
 
 
