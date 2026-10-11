@@ -7,7 +7,7 @@ script = ExtResource("1_ymbxb")
 _version = 2
 _scan_rulesets = Array[Dictionary]([{
 &"allowed_file_extensions": Array[String]([".tres"]),
-&"class_restrictions": Array[StringName]([&"faction_data"]),
+&"class_restrictions": Array[StringName]([&"FactionData"]),
 &"recursive_scan": false,
 &"scan_directories": Array[String](["res://data/factions"]),
 &"scan_regex_exclude": "",

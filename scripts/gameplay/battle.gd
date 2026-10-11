@@ -15,8 +15,7 @@ extends Node
 
 @export var boid_manager:BoidManager
 
-var allied_starting_units:int
-var enemy_starting_units:int
+var starting_units:int
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
@@ -25,16 +24,32 @@ func _ready() -> void:
 	#First gets information about current player state:
 	#number and type of units, etc
 	
-	allied_starting_units = Global.r_player_faction_sizes[0]
-	enemy_starting_units = Global.r_player_faction_sizes[1]
+	#this is not how this will be stored later
+	starting_units = Global.r_player_faction_sizes[0]
 	
 	
-	var im_size = int(ceil(sqrt(allied_starting_units + enemy_starting_units)))
+	#this is the sample faction
+	var sample_faction:FactionData = Global.FACTIONS.load_entry("uid://dbxr6kni84usf")
+	var enemy_faction:FactionData = Global.FACTIONS.load_entry("uid://caow6vbkisif0")#sample_faction.duplicate(true)
+	sample_faction.num_units = starting_units
+	enemy_faction.num_units = starting_units
 	
+	var fac_list:Array[FactionData] = [sample_faction, enemy_faction]
+	
+	
+	Global.time_scale = 1
+	
+	
+	#this logic should not be performed here
+	var im_size = int(ceil(sqrt(2 * starting_units)))
 	var start_zone:Rect2 = Rect2(0, 0, im_size * 25, im_size * 25)
 	var enemy_zone:Rect2 = Rect2(im_size * 30, 0, im_size * 25, im_size * 25)
 	
-	boid_manager.setup(start_zone, allied_starting_units, enemy_zone, enemy_starting_units)
+	fac_list[0].start_zone = start_zone
+	fac_list[1].start_zone = enemy_zone
+	
+	
+	boid_manager.setup(fac_list)
 	
 	
 	pass # Replace with function body.

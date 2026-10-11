@@ -1,14 +1,16 @@
 extends Node
 
+const FACTIONS: Registry = preload("res://data/factions/faction_registry.tres")
+#const const items:Registry ... 
 
-#Global variables here!!
-
-var r_player_factions:Array[faction_data]
+#factions - this is a temporary measure!
+var r_player_factions:Array[FactionData]
 var r_player_faction_sizes:Array[int]
 
+## how fast the sim runs
 var time_scale:float = 1
 
-
+#scene management
 var current_scene:Node = null
 var scene_stack:Array[Node] = []
 var game_root:Node

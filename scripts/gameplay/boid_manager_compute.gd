@@ -83,6 +83,7 @@ var bin_next_bytes:PackedByteArray
 
 
 ## contains positions of boids, and is actively updated from compute shader
+## will hopefully get rid of this soon
 var boid_pos_active:PackedVector4Array = []
 
 ## Each unit's location within the squad structure.
@@ -112,6 +113,8 @@ var boid_colors:PackedColorArray
 
 var time_since_phys_step:float
 
+
+var active_facs:Array[FactionData]
 
 var vision_radius:float = 35
 var avoid_radius:float = 25
@@ -178,27 +181,22 @@ signal squads_updated
 
 
 
-func _ready():
-	
-	
-	pass
-
-
-
 ## this function will need to be continually updated as more information needs to be
-## passed between each battle
-func setup(start_zone:Rect2, num_units:int, enemy_zone:Rect2, num_enemies:int):
+## passed between each battle.
+## Or, better, we split this into multiple funcs.
+func setup(facs:Array[FactionData]):
 	
+	num_boids = 0
+	active_facs = facs
 	
-	
-	num_boids = num_units + num_enemies
+	for f in active_facs:
+		num_boids += f.num_units
 	
 	#DANGER not really actually, im just not sure if 128 is the right number
 	num_workgroups = ceil(num_boids / 128.0)
 	
 	#smallest square which will hold num_boids
 	IMAGE_SIZE = int(ceil(sqrt(num_boids)))
-	
 	
 	
 	boid_data = Image.create_empty(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RGBAF)
@@ -243,8 +241,9 @@ func setup(start_zone:Rect2, num_units:int, enemy_zone:Rect2, num_enemies:int):
 	factions.fill(100)
 	
 	
-	_spawn_boids(num_units, start_zone, 0)
-	_spawn_boids(num_enemies, enemy_zone, 1)
+	for f in active_facs.size():
+		_spawn_boids(active_facs[f].num_units, active_facs[f].start_zone, f)
+		
 	
 	queue_update_boid_colors()
 	
@@ -340,13 +339,6 @@ func _draw() -> void:
 
 func _update_boids_gpu(delta):
 	
-	#reset perameters each frame
-	#DANGER no longer neccisary, as we have moved dtime to a push constant
-	rd.free_rid(params_buffer)
-	params_buffer = _generate_parameter_buffer(delta, 1)
-	params_uniform.clear_ids()
-	params_uniform.add_id(params_buffer)
-	
 	
 	#clears bin buffers
 	rd.buffer_update(bin_matrix_buffer, 0, bin_first_bytes.size(), bin_first_bytes)
@@ -368,9 +360,15 @@ func _update_boids_gpu(delta):
 	rd.compute_list_bind_compute_pipeline(compute_list, pipeline)
 	rd.compute_list_bind_uniform_set(compute_list, uniform_set, 0)
 	
+	
+	#push constants are: pass_num(int), num_boids(int) img_size(int)
+	#d_time(float), float bin_h; float bin_w;float bin_offset_x;float bin_offset_y;
+	var push_consts:PackedByteArray = PackedInt32Array([num_boids, IMAGE_SIZE]).to_byte_array()
+	push_consts.append_array(PackedFloat32Array([delta, bin_dims.x, bin_dims.y, bin_offset.x, bin_offset.y]).to_byte_array())
+	
 	#pass 0 setup
-	var pass_0_bytes = PackedInt32Array([0]).to_byte_array()
-	pass_0_bytes.append_array(PackedFloat32Array([delta]).to_byte_array())
+	var pass_0_bytes:PackedByteArray = PackedInt32Array([0]).to_byte_array()
+	pass_0_bytes.append_array(push_consts)
 	rd.compute_list_set_push_constant(compute_list, pass_0_bytes, pass_0_bytes.size())
 	
 	#first pass, does binning
@@ -382,8 +380,8 @@ func _update_boids_gpu(delta):
 	
 	
 	#second pass setup
-	var pass_1_bytes = PackedInt32Array([1]).to_byte_array()
-	pass_1_bytes.append_array(PackedFloat32Array([delta]).to_byte_array())
+	var pass_1_bytes:PackedByteArray = PackedInt32Array([1]).to_byte_array()
+	pass_1_bytes.append_array(push_consts)
 	rd.compute_list_set_push_constant(compute_list, pass_1_bytes, pass_1_bytes.size())
 	
 	#rd.compute_list_bind_uniform_set(compute_list, uniform_set_1, 0)
@@ -511,7 +509,7 @@ func _setup_compute_shader():
 	bin_next_buffer = _generate_int_array_buffer(bin_next_bytes)
 	bin_next_uniform = _generate_uniform(bin_next_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 4)
 	
-	params_buffer = _generate_parameter_buffer(0, 0)
+	params_buffer = _generate_parameter_buffer()
 	params_uniform = _generate_uniform(params_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 5)
 		
 	health_buffer = rd.storage_buffer_create(health_bytes.size(), health_bytes)
@@ -540,29 +538,15 @@ func _generate_uniform(data_buffer, type, binding):
 	data_uniform.add_id(data_buffer)
 	return data_uniform
 
-func _generate_parameter_buffer(delta, pass_number):
-	var params_buffer_bytes : PackedByteArray = PackedFloat32Array(
-		[num_boids, 
-		IMAGE_SIZE, 
+## Should not need to happen all that often
+func _generate_parameter_buffer():
+	
+	var params_buffer_bytes:PackedByteArray = []
+	
+	for f in active_facs:
 		
-		vision_radius,
-		avoid_radius,
-		
-		bin_dims.x, 
-		bin_dims.y,
-		
-		bin_offset.x,
-		bin_offset.y,
-		
-		alignment_factor,
-		cohesion_factor,
-		separation_factor,
-		damp_factor,
-		
-		#currently unused - replace w weight+coeff of rest
-		pass_number,
-		delta
-		]).to_byte_array()
+		params_buffer_bytes.append_array(f.get_params().to_byte_array())
+	
 	
 	return rd.storage_buffer_create(params_buffer_bytes.size(), params_buffer_bytes)
 

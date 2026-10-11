@@ -1,8 +1,13 @@
-[gd_resource type="Resource" script_class="faction_data" format=3 uid="uid://caow6vbkisif0"]
+[gd_resource type="Resource" script_class="FactionData" format=3 uid="uid://caow6vbkisif0"]
 
 [ext_resource type="Script" uid="uid://b8wda2cwohac0" path="res://data/factions/faction_data.gd" id="1_ddqtw"]
 
 [resource]
 script = ExtResource("1_ddqtw")
+damp_factor = 1.1
+weight = 0.6
+coeff_restitution = 0.75
+friendly_fire = 0.4
+max_health = 40.0
 color = Color(1, 0.21568628, 0.21960784, 1)
 metadata/_custom_type_script = "uid://b8wda2cwohac0"
