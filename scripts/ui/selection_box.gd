@@ -76,38 +76,11 @@ func _draw() -> void:
 
 
 
-#DANGER DANGER BAD PROGRAMMING HERE -> update w binning later
 func _finalize_selection_gpu():
 	
 	selectionRect = selectionRect.abs()
 	
-	var to_select:Array[int] = []
+	boid_manager.select_rect(selectionRect)
 	
-	var curr_boid_pos_vel:Vector4
-	
-	for b in boid_manager.num_boids:
-		
-		
-		if boid_manager.health[b] <= 0 || \
-			boid_manager.factions[b] % 2 != 0:
-			continue
-		
-		curr_boid_pos_vel = boid_manager.boid_pos_active[b]
-		
-		if selectionRect.has_point(Vector2(curr_boid_pos_vel.x, curr_boid_pos_vel.y)):
-			
-			to_select.append(b)
-			
-	
-	
-	
-	match mode:
-		BOX_MODE.SELECT:
-			boid_manager.select_boids(to_select)
-		BOX_MODE.DELETE:
-			boid_manager.queue_delete_boids(to_select)
-	
-	
-	boid_manager.squads_updated.emit()
 	
 	pass

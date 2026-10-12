@@ -8,8 +8,14 @@
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_o08vg"]
 shader = ExtResource("2_7ubhm")
 
+[sub_resource type="Texture2DRD" id="Texture2DRD_3phmn"]
+
+[sub_resource type="Texture2DRD" id="Texture2DRD_npnhu"]
+
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_4sp5u"]
 shader = ExtResource("4_fp1yc")
+shader_parameter/boid_data = SubResource("Texture2DRD_3phmn")
+shader_parameter/boid_data_prev = SubResource("Texture2DRD_npnhu")
 shader_parameter/scale = 25.0
 shader_parameter/phys_fps = 0
 shader_parameter/time_since_phys_step = 0.0

@@ -96,24 +96,32 @@ layout(set = 0, binding = 7, std430) restrict buffer Faction{
 	int data[];
 } faction;
 
-//layout(set = 0, binding = 8, std430) restrict buffer ToDelete{
-//	int data[];
-//} to_delete;
+layout(set = 0, binding = 8, std430) restrict buffer ReturnAmt{
+	int data[];
+} return_amt;
 
+layout(set = 0, binding = 9, std430) restrict buffer BoidReturn{
+	int data[];
+} boid_return;
 
 //function prototypes
 void binning_pass();
 void boid_physics_pass();
+void selection_pass();
 void loop_over_bin(int);
 void boid_loop_interior(int);
 int get_bindex();
 void storeImage();
+float unpackFloat(int);
 
+
+//locations for pass loc checks
+//len of 2 for now, maybe this will change
+shared vec2 loc_check[2];
 
 
 //unique identifier for this instance
 int index = int(gl_GlobalInvocationID.x);
-
 
 //these variables are more convenient to have here
 int num_neighbors = 0;
@@ -148,14 +156,39 @@ void main() {
 		return;
 	}
 
+	//anything that returns nothing can always go first
+	//only allowed to run single one that does both, goes in middle
+	//ones that do both need to have info passed from rear
+	//anything that is passed nothing can always go last
+
+	//binning, impulse, selection, physics
+
+
 
 	switch(rc.pass_num){
-
+		
 		case 0:
+			//nothing passed, nothing returned
 			binning_pass();
 			break;
 		case 1:
+			//passed impulse point(s) and strength(s) (damage?)
+			//does not return
+			//impulse_pass();
+		case 2:
+			//passed rectangle <- passed at VERY END
+			//returns selected boids
+			selection_pass();
+			break;
+		case 3:
+			//not yet determined
+			break;
+		case 4:
+			//nothing passed
+			//returns dead boids
 			boid_physics_pass();
+			break;
+
 	}
 
 
@@ -419,4 +452,47 @@ void storeImage(){
 	ivec2 pixel_pos = ivec2(index % img_size_int, index / img_size_int);
 	
 	imageStore(boid_data, pixel_pos, vec4(position.x, position.y, velocity.x, velocity.y));
+}
+
+//unpacks a floating point number from integer in input array
+float unpackFloat(int index){
+
+	return intBitsToFloat(boid_return.data[index]);
+}
+
+//pass id 2
+//this is passed info, and returns info
+//it wil always be the only one that does both
+//it will always be the first pass to return data
+//info is passed from rear of input buffer
+void selection_pass(){
+
+	if(gl_LocalInvocationIndex == 0){
+
+		
+		int passed_rect = int(pow(rc.image_size, 2));
+
+		//uses 4 total int slots
+
+		loc_check[0] = vec2(unpackFloat(passed_rect - 4), unpackFloat(passed_rect - 3));
+		loc_check[1] = vec2(unpackFloat(passed_rect - 2), unpackFloat(passed_rect - 1));
+	}
+
+	barrier();
+	memoryBarrierShared();
+
+	//check if pos is inside rect:
+
+	//if pos is greater than position,
+	//but also less than end
+
+	vec2 rect_pos = loc_check[0];
+	vec2 rect_end = loc_check[1];
+	
+	if(position.x > rect_pos.x && position.y > rect_pos.y && position.x < rect_end.x && position.y < rect_end.y && faction.data[index] % 2 == 0){
+
+		//increment return size, return own index
+		boid_return.data[atomicAdd(return_amt.data[2], 1)] = index;
+
+	}
 }

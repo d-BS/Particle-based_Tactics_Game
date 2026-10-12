@@ -49,6 +49,9 @@ var num_workgroups:int
 #In shader, convert distance to dist^2, reduce normalize, etc
 #
 
+var num_passes:int = 5
+
+
 #buffers-to-be
 var boid_posvel:PackedVector4Array = []
 var squad_biases:PackedVector2Array = []
@@ -56,29 +59,20 @@ var factions:PackedInt32Array = []
 
 
 
-#plus faction info, ie faction-specific params:
-#damping / other params - mass, max hp
-#elemental alignment
-#faction color
-#	(though individual color should be changed depending on health)
-
+#health-related vars
 var health:PackedFloat32Array = []
 var health_bytes:PackedByteArray
 var health_img:Image
 var health_tex:ImageTexture
 
 
-
-#bin-related variables
-
+#bin-related variables - CHANGE TO HASH!
 var bin_dims:Vector2 = Vector2(1500, 1500)
 var bin_offset:Vector2 = -bin_dims * 35 / 5
 var bin_first:PackedInt32Array = []
 var bin_first_bytes:PackedByteArray
 var bin_next:PackedInt32Array = []
 var bin_next_bytes:PackedByteArray
-
-
 
 
 
@@ -151,6 +145,9 @@ var boid_data_buffer : RID
 var health_buffer : RID
 var factions_buffer : RID
 
+var return_amt_buffer : RID
+var boid_return_buffer : RID
+
 #uniforms
 var boid_posvel_uniform : RDUniform
 #var boid_vel_uniform : RDUniform
@@ -163,10 +160,20 @@ var boid_data_buffer_uniform : RDUniform
 var health_uniform : RDUniform
 var factions_uniform : RDUniform
 
+var return_amt_uniform : RDUniform
+var boid_return_uniform : RDUniform
+
 
 
 
 #different queue variables
+
+var selection_pass = false
+#... other pass/return passes - maybe make enum for this later
+var back_passed_info:PackedInt32Array = []
+
+#... passes that only get passed info
+var front_passed_info:PackedInt32Array = []
 
 var update_squad_bias_uniform:bool = false
 var update_boid_color_tex:bool = false
@@ -222,6 +229,7 @@ func setup(facs:Array[FactionData]):
 	
 	boid_colors.resize(IMAGE_SIZE * IMAGE_SIZE)
 	boid_colors.fill(Color.ORANGE_RED)
+	
 	
 	bin_first.resize(bin_dims.x * bin_dims.y)
 	bin_first.fill(-1)
@@ -344,6 +352,16 @@ func _update_boids_gpu(delta):
 	rd.buffer_update(bin_matrix_buffer, 0, bin_first_bytes.size(), bin_first_bytes)
 	rd.buffer_update(bin_next_buffer, 0, bin_next_bytes.size(), bin_next_bytes)
 	
+	#updates passed info
+	if !back_passed_info.is_empty():
+		var back_passed_bytes:PackedByteArray = back_passed_info.to_byte_array()
+		rd.buffer_update(boid_return_buffer, IMAGE_SIZE * IMAGE_SIZE * 4 - back_passed_bytes.size(), back_passed_bytes.size(), back_passed_bytes)
+		back_passed_info.clear()
+	#update front_passed, once relevant
+	#actually update this, once relevant
+	rd.buffer_update(return_amt_buffer, 0, num_passes * 4, PackedInt32Array([0,0,0,0,0]).to_byte_array())
+	
+	
 	
 	#excecute queued actions:
 	
@@ -353,7 +371,6 @@ func _update_boids_gpu(delta):
 	
 	
 	uniform_set = rd.uniform_set_create(bindings, boid_compute_shader, 0)
-	
 	
 	
 	var compute_list := rd.compute_list_begin()
@@ -366,27 +383,40 @@ func _update_boids_gpu(delta):
 	var push_consts:PackedByteArray = PackedInt32Array([num_boids, IMAGE_SIZE]).to_byte_array()
 	push_consts.append_array(PackedFloat32Array([delta, bin_dims.x, bin_dims.y, bin_offset.x, bin_offset.y]).to_byte_array())
 	
-	#pass 0 setup
-	var pass_0_bytes:PackedByteArray = PackedInt32Array([0]).to_byte_array()
-	pass_0_bytes.append_array(push_consts)
-	rd.compute_list_set_push_constant(compute_list, pass_0_bytes, pass_0_bytes.size())
+	var pass_n_bytes : PackedByteArray #= PackedInt32Array([0]).to_byte_array()
+	#pass_n_bytes.append_array(push_consts)
 	
-	#first pass, does binning
-	rd.compute_list_dispatch(compute_list, num_workgroups, 1, 1)
-	
-	
-	#barrier which is important apparently
-	rd.compute_list_add_barrier(compute_list)
-	
-	
-	#second pass setup
-	var pass_1_bytes:PackedByteArray = PackedInt32Array([1]).to_byte_array()
-	pass_1_bytes.append_array(push_consts)
-	rd.compute_list_set_push_constant(compute_list, pass_1_bytes, pass_1_bytes.size())
-	
-	#rd.compute_list_bind_uniform_set(compute_list, uniform_set_1, 0)
-	rd.compute_list_dispatch(compute_list, num_workgroups, 1, 1)
-	
+	#number of passes (as of right now)
+	#remember to change return amt
+	for n in range(num_passes):
+		
+		
+		if n == 2 && selection_pass:
+			selection_pass = false
+			pass
+		
+		#if not doing pass n (this is while the other passes are not implemented)
+		elif n!=0 &&n!=4:
+			continue
+		
+		
+		
+		
+		#adds barrier if neccisary
+		if n != 0:
+			#barrier which is important apparently
+			rd.compute_list_add_barrier(compute_list)
+		
+		
+		#pass n setup
+		pass_n_bytes = PackedInt32Array([n]).to_byte_array()
+		pass_n_bytes.append_array(push_consts)
+		rd.compute_list_set_push_constant(compute_list, pass_n_bytes, pass_n_bytes.size())
+		
+		#does pass n
+		rd.compute_list_dispatch(compute_list, num_workgroups, 1, 1)
+		
+		
 	
 	rd.compute_list_end()
 	rd.submit()
@@ -435,6 +465,19 @@ func _update_data_texture():
 	# ~90-400 mcs
 	health_tex.update(health_img)
 	
+	
+	var return_sizes:PackedInt32Array = rd.buffer_get_data(return_amt_buffer, 0, num_passes * 4).to_int32_array()
+	
+	#ACTUALLY CHECK THIS!
+	#0 should be 0
+	#1 should be 1
+	
+	if return_sizes[2] != 0:
+		
+		
+		select_boids(rd.buffer_get_data(boid_return_buffer, 0, 4 * return_sizes[2] - 0*4).to_int32_array())
+		
+		pass
 	
 	
 	#var start_time = Time.get_ticks_usec()
@@ -518,8 +561,18 @@ func _setup_compute_shader():
 	factions_buffer = _generate_int_array_buffer(factions.to_byte_array())
 	factions_uniform = _generate_uniform(factions_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 7)
 	
+	#length is just # of passes
+	var return_amt_start:Array[int]
+	return_amt_start.resize(num_passes)
+	return_amt_start.fill(0)
+	return_amt_buffer = _generate_int_array_buffer(PackedInt32Array(return_amt_start).to_byte_array())
+	return_amt_uniform = _generate_uniform(return_amt_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 8)
 	
-	bindings = [boid_data_buffer_uniform, boid_posvel_uniform, squad_bias_uniform, bin_matrix_uniform, bin_next_uniform, params_uniform, health_uniform, factions_uniform]
+	# health bytes is of size Imagelen * imagelen
+	boid_return_buffer = _generate_int_array_buffer(health_bytes)
+	boid_return_uniform = _generate_uniform(boid_return_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 9)
+	
+	bindings = [boid_data_buffer_uniform, boid_posvel_uniform, squad_bias_uniform, bin_matrix_uniform, bin_next_uniform, params_uniform, health_uniform, factions_uniform, return_amt_uniform, boid_return_uniform]
 
 func _generate_vec_buffer(data):
 	var data_buffer_bytes:PackedByteArray = data.to_byte_array()
@@ -584,6 +637,15 @@ func set_selected_bias(new_bias:Vector2, selection:int = selection_squad):
 	
 	pass
 
+func select_rect(rect:Rect2):
+	
+	
+	selection_pass = true
+	
+	
+	back_passed_info = PackedFloat32Array([rect.position.x, rect.position.y, rect.end.x, rect.end.y]).to_byte_array().to_int32_array()
+	
+	pass
 
 func select_boids(new_selection:Array[int]):
 	
@@ -640,11 +702,10 @@ func select_boids(new_selection:Array[int]):
 		squads.pop_back()
 		
 	
-	
+	squads_updated.emit()
 	queue_update_boid_colors()
 	
 	pass
-
 
 func select_squad(new_selection_squad:int):
 	
@@ -674,8 +735,7 @@ func select_squad(new_selection_squad:int):
 
 func queue_update_squad_bias_uniform():
 	update_squad_bias_uniform = true
-	
-	
+
 
 func _update_squad_bias_uniform():
 	
@@ -746,8 +806,9 @@ func remove_from_squads(b:int):
 	
 	if squad_indeces[b].x != -1:
 		squads[squad_indeces[b].x].remove_boid(int(squad_indeces[b].y))
-	
 
+
+#remove soon
 func _update_health_buffer():
 	
 	if !queue_update_health_buffer:

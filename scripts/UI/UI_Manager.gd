@@ -40,7 +40,7 @@ func _process(_delta: float) -> void:
 	
 	for s in boid_manager.squads.size():
 		
-		squad_list.set_item_text(s*2+1, str("Squad ", s + 1, ", ", boid_manager.squads[s].units.size(), " units"))
+		squad_list.set_item_text( s * 2 + 1, str("Squad ", s + 1, ", ", boid_manager.squads[s].units.size(), " units"))
 		
 	
 	pass

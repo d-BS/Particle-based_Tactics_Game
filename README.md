@@ -12,7 +12,6 @@
 ## Known issues:
 	
 	sometimes squads choose nearly indistinguishable colors
-	Deletion unfinished
 	
 
 
