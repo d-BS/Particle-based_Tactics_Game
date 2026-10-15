@@ -203,9 +203,10 @@ func set_color(new_color:Color):
 ## DANGER Pricy
 func _calc_appx_loc():
 	
-	
 	var new_location: Vector2 = Vector2.ZERO
 	unit_locations.resize(units.size())
+	
+	boid_manager.update_pos_active()
 	
 	var i:int = 0
 	
@@ -213,6 +214,7 @@ func _calc_appx_loc():
 		
 		#sums locations for new appx location
 		var unit_location:Vector4 = boid_manager.boid_pos_active[b]
+		
 		unit_locations[i] = Vector2(unit_location.x, unit_location.y)
 		new_location += unit_locations[i]
 		

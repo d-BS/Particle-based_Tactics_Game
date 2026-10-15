@@ -39,7 +39,6 @@ layout(set = 0, binding = 1, std430) restrict readonly buffer PosVel {
 } boid_posvel;
 
 
-
 //buffer for bias provided by squad
 layout(set = 0, binding = 2, std430) restrict readonly buffer SquadBias{
 	vec2 data[];
@@ -87,20 +86,22 @@ layout(set = 0, binding = 5, std430) restrict readonly buffer Params{
 
 
 //holds health of each unit
-layout(set = 0, binding = 6, std430) restrict buffer Health{
+layout(set = 0, binding = 6, std430) restrict buffer HealthIn{
 	float data[];
 } health;
 
+layout(set = 0, r32f, binding = 7) restrict writeonly uniform image2D health_out;
+
 //holds faction # of each unit
-layout(set = 0, binding = 7, std430) restrict buffer Faction{
+layout(set = 0, binding = 8, std430) restrict buffer Faction{
 	int data[];
 } faction;
 
-layout(set = 0, binding = 8, std430) restrict buffer ReturnAmt{
+layout(set = 0, binding = 9, std430) restrict buffer ReturnAmt{
 	int data[];
 } return_amt;
 
-layout(set = 0, binding = 9, std430) restrict buffer BoidReturn{
+layout(set = 0, binding = 10, std430) restrict buffer BoidReturn{
 	int data[];
 } boid_return;
 
@@ -448,10 +449,14 @@ int get_bindex(){
 void storeImage(){
 
 
-	int img_size_int = int(rc.image_size);
-	ivec2 pixel_pos = ivec2(index % img_size_int, index / img_size_int);
+	ivec2 pixel_pos = ivec2(index % rc.image_size, index / rc.image_size);
 	
 	imageStore(boid_data, pixel_pos, vec4(position.x, position.y, velocity.x, velocity.y));
+
+	memoryBarrierBuffer();
+	barrier();
+
+	imageStore(health_out, pixel_pos, vec4(health.data[index], 0, 0, 0));
 }
 
 //unpacks a floating point number from integer in input array

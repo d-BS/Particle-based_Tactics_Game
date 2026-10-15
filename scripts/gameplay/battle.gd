@@ -48,8 +48,7 @@ func _ready() -> void:
 	fac_list[0].start_zone = start_zone
 	fac_list[1].start_zone = enemy_zone
 	
-	
-	boid_manager.setup(fac_list)
+	RenderingServer.call_on_render_thread(boid_manager.setup.bind(fac_list))
 	
 	
 	pass # Replace with function body.
@@ -97,13 +96,12 @@ func _physics_process(delta: float) -> void:
 		
 		return
 	
-	
-	
-	boid_manager.step_particle_sim(delta)
+	RenderingServer.call_on_render_thread(boid_manager.step_particle_sim.bind(delta))
 	
 	#excecute any queued actions
-	boid_manager._update_squad_bias_uniform()
-	boid_manager._update_boid_colors()
+	RenderingServer.call_on_render_thread(boid_manager._update_squad_bias_uniform)
+	RenderingServer.call_on_render_thread(boid_manager._update_boid_colors)
+	
 	
 	
 	
