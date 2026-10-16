@@ -92,3 +92,11 @@ func create_form_mob(locations:PackedVector2Array, appx_loc:Vector2 = Vector2.ZE
 	
 	
 	pass
+
+func create_form_point():
+	
+	form_type = "point"
+	
+	pos = []
+	pos.resize(size)
+	pos.fill(Vector2.ZERO)

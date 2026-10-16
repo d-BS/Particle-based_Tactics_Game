@@ -49,6 +49,7 @@ var num_workgroups:int
 #In shader, convert distance to dist^2, reduce normalize, etc
 #
 
+#REMEMBER TO CHANGE IN GLSL
 var num_passes:int = 5
 
 
@@ -96,10 +97,10 @@ var empty_squads:Array[int] = []
 
 #textures that store information for particle shader
 var IMAGE_SIZE:int
-var boid_data : Image
-var boid_data_texture : ImageTexture
-var boid_data_texture_prev : ImageTexture
-var boid_data_address : Texture2DRD
+
+var boid_data_texture2drd : Texture2DRD
+var boid_data_texture2drd_prev : Texture2DRD
+
 var boid_colors_image : Image
 var boid_colors_texture : ImageTexture
 
@@ -131,7 +132,7 @@ var rd : RenderingDevice
 var boid_compute_shader : RID
 var pipeline : RID
 
-var bindings : Array
+var bindings : Array[RDUniform]
 var uniform_set : RID
 
 #buffers
@@ -183,8 +184,6 @@ var update_squad_bias_uniform:bool = false
 var update_boid_color_tex:bool = false
 var queue_update_health_buffer:bool = false
 
-var boids_to_delete:PackedInt32Array = []
-
 
 
 @warning_ignore("unused_signal")
@@ -210,18 +209,10 @@ func setup(facs:Array[FactionData]):
 	IMAGE_SIZE = int(ceil(sqrt(num_boids)))
 	
 	
-	boid_data = Image.create_empty(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RGBAF)
-	boid_data_texture = ImageTexture.create_from_image(boid_data)
-	boid_data_texture_prev = ImageTexture.create_from_image(boid_data)
-	
 	boid_colors_image = Image.create_empty(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RGBAF)
 	boid_colors_texture = ImageTexture.create_from_image(boid_colors_image)
 	
-	#health_img = Image.create_empty(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RF)
-	#health_tex = ImageTexture.create_from_image(health_img)
-	
-	
-	boid_posvel.resize(num_boids)
+	boid_posvel.resize(IMAGE_SIZE * IMAGE_SIZE)
 	
 	squads = []
 	Squad.boid_manager = self
@@ -261,11 +252,9 @@ func setup(facs:Array[FactionData]):
 	queue_update_boid_colors()
 	
 	$boid_particles.amount = num_boids
-	#$boid_particles.process_material.set_shader_parameter("boid_data", boid_data_address)
-	$boid_particles.process_material.set_shader_parameter("boid_data", boid_data_texture)
-	$boid_particles.process_material.set_shader_parameter("boid_data_prev", boid_data_texture_prev)
+	boid_data_texture2drd = $boid_particles.process_material.get_shader_parameter("boid_data")
+	boid_data_texture2drd_prev = $boid_particles.process_material.get_shader_parameter("boid_data_prev")
 	$boid_particles.process_material.set_shader_parameter("boid_colors", boid_colors_texture)
-	#$boid_particles.process_material.set_shader_parameter("health", health_tex)
 	health_tex2drd = $boid_particles.process_material.get_shader_parameter("health")
 	$boid_particles.process_material.set_shader_parameter("phys_fps", Engine.physics_ticks_per_second)
 	$boid_particles.process_material.set_shader_parameter("time_since_phys_step", time_since_phys_step)
@@ -274,12 +263,11 @@ func setup(facs:Array[FactionData]):
 	$boid_particles.visibility_rect = Rect2(-Vector2.INF, Vector2.INF)
 	
 	
-	#RenderingServer.call_on_render_thread(_setup_compute_shader)
-	#RenderingServer.call_on_render_thread(_update_boids_gpu)
 	
 	_setup_compute_shader()
 	_update_boids_gpu(0)
 	
+	#draws binning bounds
 	queue_redraw()
 	
 	boid_posvel.clear()
@@ -311,7 +299,7 @@ var _spawn_offset = 0
 
 
 func _process(delta):
-	
+	get_window().title = "Units: " + str(num_boids) + " / FPS: " + str(Engine.get_frames_per_second())
 	time_since_phys_step += delta
 	$boid_particles.process_material.set_shader_parameter("time_since_phys_step", time_since_phys_step)
 	
@@ -321,13 +309,8 @@ func step_particle_sim(delta):
 	
 	delta *= Global.time_scale
 	
-	get_window().title = "Units: " + str(num_boids) + " / FPS: " + str(Engine.get_frames_per_second())
+	
 	time_since_phys_step = 0
-	
-	_sync_boids_gpu()
-	
-	#RenderingServer.call_on_render_thread(_update_data_texture)
-	#RenderingServer.call_on_render_thread(Callable.create(self, "_update_boids_gpu").bind(delta))
 	
 	
 	_update_data_texture()
@@ -336,9 +319,9 @@ func step_particle_sim(delta):
 	
 	
 	
-	for s in squads:
+	#for s in squads:
 		
-		s.update(delta)
+	#	s.update(delta)
 		
 	
 	
@@ -358,6 +341,15 @@ func _update_boids_gpu(delta):
 	rd.buffer_update(bin_matrix_buffer, 0, bin_first_bytes.size(), bin_first_bytes)
 	rd.buffer_update(bin_next_buffer, 0, bin_next_bytes.size(), bin_next_bytes)
 	
+	#swaps in/out pos/vel buffers
+	var former_out:RID = bindings[0].get_ids().front()
+	var former_in:RID = bindings[1].get_ids().front()
+	bindings[0].clear_ids()
+	bindings[0].add_id(former_in)
+	bindings[1].clear_ids()
+	bindings[1].add_id(former_out)
+	
+	
 	#updates passed info
 	if !back_passed_info.is_empty():
 		var back_passed_bytes:PackedByteArray = back_passed_info.to_byte_array()
@@ -365,15 +357,8 @@ func _update_boids_gpu(delta):
 		back_passed_info.clear()
 	#update front_passed, once relevant
 	#actually update this, once relevant
-	rd.buffer_update(return_amt_buffer, 0, num_passes * 4, PackedInt32Array([0,0,0,0,0]).to_byte_array())
+	rd.buffer_clear(return_amt_buffer, 0, num_passes * 4)
 	
-	
-	
-	#excecute queued actions:
-	
-	#updates any cpu health changes to gpu
-	_delete_boids()
-	_update_health_buffer()
 	
 	
 	uniform_set = rd.uniform_set_create(bindings, boid_compute_shader, 0)
@@ -430,59 +415,51 @@ func _update_boids_gpu(delta):
 
 ## Recieves work from gpu. is slow if gpu hasn't yet finished
 func _sync_boids_gpu():
-	#rd.sync()
+	rd.sync()
 	pass
 func _update_data_texture():
 	
-	# times are assuming 200_000 units
-	# most of these take longer for first few frames for some reason
 	
-	# ~800 - 900 mcs
-	var boid_data_image_data:PackedByteArray = rd.texture_get_data(boid_data_buffer, 0)
-	
-	# ~ 500 - 800 mcs
-	boid_data.set_data(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RGBAF, boid_data_image_data)
-	
-	# ~ 500 mcs
-	var temp:ImageTexture = boid_data_texture_prev
-	boid_data_texture_prev = boid_data_texture
-	boid_data_texture = temp
-	boid_data_texture.update(boid_data)
-	
-	# ~ 15 mcs
-	$boid_particles.process_material.set_shader_parameter("boid_data", boid_data_texture)
-	$boid_particles.process_material.set_shader_parameter("boid_data_prev", boid_data_texture_prev)
-	
-	#updates boid_pos_active
-	# ~500-600 mcs
-	boid_data_image_data = boid_data_image_data.slice(0, num_boids * 16)
-
-	# ~300 mcs
-	rd.buffer_update(boid_posvel_buffer, 0, boid_data_image_data.size(), boid_data_image_data)
-	
-	#updates health
-	# ~1000-6000 mcs
-	#health_bytes = rd.buffer_get_data(health_buffer, 0, health_bytes.size())
-	# ~200-900 mcs
-	#health = health_bytes.to_float32_array()
-	# ~1 mcs (if no deletions), ~500 (if large swaths deleted)
-	#health_img.set_data(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RF, health_bytes)
-	# ~90-400 mcs
-	#health_tex.update(health_img)
+	var temp:Texture2DRD = boid_data_texture2drd_prev
+	boid_data_texture2drd_prev = boid_data_texture2drd
+	boid_data_texture2drd = temp
+	$boid_particles.process_material.set_shader_parameter("boid_data", boid_data_texture2drd_prev)
+	$boid_particles.process_material.set_shader_parameter("boid_data_prev", boid_data_texture2drd)
 	
 	
 	
 	var return_sizes:PackedInt32Array = rd.buffer_get_data(return_amt_buffer, 0, num_passes * 4).to_int32_array()
+	if return_sizes.get(return_sizes.size()-1) == 0:
+		return
+	var all_returns:PackedInt32Array = rd.buffer_get_data(boid_return_buffer, 0, 4 * return_sizes.get(return_sizes.size()-1)).to_int32_array()
+	var prev_size:int = 0
 	
-	#ACTUALLY CHECK THIS!
-	#0 should be 0
-	#1 should be 1
-	
-	if return_sizes[2] != 0:
-		print(return_sizes[2])
-		select_boids(rd.buffer_get_data(boid_return_buffer, 0, 4 * return_sizes[2] - 0*4).to_int32_array())
+	for r in return_sizes.size():
 		
-		pass
+		#we do a thing if there is stuff here
+		if return_sizes[r] - prev_size != 0:
+			
+			
+			var to_pass:PackedInt32Array = all_returns.slice(prev_size, return_sizes[r])
+			
+			
+			match(r):
+				0:
+					pass
+				1:
+					pass
+				2:
+					select_boids(to_pass)
+					
+				3:
+					pass
+				4:
+					delete_boids(to_pass)
+			
+			
+			pass
+		
+		prev_size = return_sizes[r]
 	
 	
 	#var start_time = Time.get_ticks_usec()
@@ -529,16 +506,16 @@ func _setup_compute_shader():
 	var view := RDTextureView.new()
 	
 	
-	boid_data_buffer = rd.texture_create(fmt, view, [boid_data.get_data()])
+	boid_data_buffer = rd.texture_create(fmt, view, [boid_posvel.to_byte_array()])
+	if boid_data_buffer.is_valid():
+		boid_data_texture2drd.texture_rd_rid = boid_data_buffer
 	boid_data_buffer_uniform = _generate_uniform(boid_data_buffer, RenderingDevice.UNIFORM_TYPE_IMAGE, 0)
+
 	
-	
-	#boid_data_address = Texture2DRD.new()
-	#boid_data_address.texture_rd_rid = boid_data_buffer
-	
-	
-	boid_posvel_buffer = _generate_vec_buffer(boid_posvel)
-	boid_posvel_uniform = _generate_uniform(boid_posvel_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 1)
+	boid_posvel_buffer = rd.texture_create(fmt, view, [boid_posvel.to_byte_array()])
+	if boid_posvel_buffer.is_valid():
+		boid_data_texture2drd_prev.texture_rd_rid = boid_posvel_buffer
+	boid_posvel_uniform = _generate_uniform(boid_posvel_buffer, RenderingDevice.UNIFORM_TYPE_IMAGE, 1)
 	
 	squad_bias_buffer = _generate_vec_buffer(squad_biases)
 	squad_bias_uniform = _generate_uniform(squad_bias_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 2)
@@ -608,11 +585,15 @@ func _generate_parameter_buffer():
 
 func _exit_tree():
 	
-	_sync_boids_gpu()
 	
 	#do this for all texture2drds!!
 	if health_tex2drd:
 		health_tex2drd.texture_rd_rid = RID()
+	if boid_data_texture2drd:
+		boid_data_texture2drd.texture_rd_rid = RID()
+	if boid_data_texture2drd_prev:
+		boid_data_texture2drd_prev.texture_rd_rid = RID()
+		
 
 	
 	RenderingServer.call_on_render_thread(_free_buffers)
@@ -754,13 +735,9 @@ func _update_squad_bias_uniform():
 	if ! update_squad_bias_uniform:
 		return
 	
+	var bias_bytes:PackedByteArray = squad_biases.to_byte_array()
 	
-	rd.free_rid(squad_bias_buffer)
-	
-	squad_bias_buffer = _generate_vec_buffer(squad_biases)
-	squad_bias_uniform = _generate_uniform(squad_bias_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 2)
-	bindings[2] = squad_bias_uniform
-	
+	rd.buffer_update(squad_bias_buffer, 0, bias_bytes.size(), bias_bytes)
 	
 	update_squad_bias_uniform = false
 
@@ -787,30 +764,20 @@ func _update_boid_colors():
 	pass
 
 
-func queue_delete_boids(selection:Array[int]):
-	
-	boids_to_delete.append_array(selection)
-	
-	pass
 
-## this needs to be updated
-func _delete_boids():
+## performs any actions that happen upon a boid dying
+func delete_boids(selection:Array[int]):
 	
-	if boids_to_delete.is_empty():
+	if selection.is_empty():
 		return
 	
 	
-	for b in boids_to_delete:
+	for b in selection:
 		
 		remove_from_squads(b)
 		
-		health[b] = 0
-		
 		pass
 	
-	boids_to_delete.clear()
-	
-	#queue_update_health_buffer = true
 	
 	pass
 
@@ -818,23 +785,3 @@ func remove_from_squads(b:int):
 	
 	if squad_indeces[b].x != -1:
 		squads[squad_indeces[b].x].remove_boid(int(squad_indeces[b].y))
-
-
-#remove soon
-func _update_health_buffer():
-	
-	if !queue_update_health_buffer:
-		return
-	
-	queue_update_health_buffer = false
-	
-	health_bytes = health.to_byte_array()
-	
-	#rd.buffer_update(health_buffer, 0, health_bytes.size(), health_bytes)
-	
-	
-	pass
-
-func update_pos_active():
-	
-	boid_pos_active = boid_data.get_data().to_vector4_array()

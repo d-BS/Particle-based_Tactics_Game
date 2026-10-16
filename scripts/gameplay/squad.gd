@@ -100,7 +100,7 @@ func set_bias(new_bias:Vector2):
 	
 	else:
 		
-		set_formation("mob", new_bias)
+		set_formation("point", new_bias)
 		
 		pass
 	
@@ -111,7 +111,6 @@ func update(_delta:float):
 	
 	if(units.size() == 0):
 		return
-	
 	
 	
 	var i = lazy_offset
@@ -151,7 +150,8 @@ func update(_delta:float):
 func set_formation(type:String, goal:Vector2 = Vector2.INF):
 	
 	
-	_calc_appx_loc()
+	
+	
 	
 	
 	var new_formation = Formation.new(units.size())
@@ -161,6 +161,8 @@ func set_formation(type:String, goal:Vector2 = Vector2.INF):
 			new_formation.create_form_mob(unit_locations, appx_location)
 		"rect":
 			new_formation.create_form_rect()
+		"point":
+			new_formation.create_form_point()
 	
 	if(goal!=Vector2.INF):
 		new_formation.location = goal
@@ -202,6 +204,8 @@ func set_color(new_color:Color):
 
 ## DANGER Pricy
 func _calc_appx_loc():
+	
+	return
 	
 	var new_location: Vector2 = Vector2.ZERO
 	unit_locations.resize(units.size())

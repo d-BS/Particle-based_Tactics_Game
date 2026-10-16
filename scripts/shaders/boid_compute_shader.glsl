@@ -34,9 +34,7 @@ layout(set = 0, rgba32f, binding = 0) restrict writeonly uniform image2D boid_da
 
 
 //buffer for the position of each boid
-layout(set = 0, binding = 1, std430) restrict readonly buffer PosVel {
-	vec4 data[];
-} boid_posvel;
+layout(set = 0, rgba32f, binding = 1) restrict readonly uniform image2D boid_posvel;
 
 
 //buffer for bias provided by squad
@@ -113,12 +111,9 @@ void loop_over_bin(int);
 void boid_loop_interior(int);
 int get_bindex();
 void storeImage();
+ivec2 get_pixel_pos(int);
 float unpackFloat(int);
 
-
-//locations for pass loc checks
-//len of 2 for now, maybe this will change
-shared vec2 loc_check[2];
 
 
 //unique identifier for this instance
@@ -139,15 +134,16 @@ vec2 velocity;
 
 
 void main() {
+	
 
-	vec4 pos_vel = boid_posvel.data[index];
+	vec4 pos_vel = imageLoad(boid_posvel, get_pixel_pos(index));
 	own_faction = faction.data[index];
 
 	position = pos_vel.rg;
 	velocity = pos_vel.ba;
 
 	
-	//having this just makes some things cleaner
+	//culls threads not mapped to a boid
 	if (index >= rc.num_boids){
 		return;
 	}
@@ -198,9 +194,16 @@ void main() {
 	//else if(params.pass_number == 1.0)
 	//	boid_physics_pass();
 
-		
-
 	
+
+
+	if(gl_LocalInvocationIndex == 0 && rc.pass_num != 4 && return_amt.data[rc.pass_num] != 0){
+
+		//not a fan of this solution
+		for(int i = rc.pass_num + 1; i < 5; i ++)
+			return_amt.data[i] = return_amt.data[rc.pass_num];
+		//atomicExchange(return_amt.data[rc.pass_num], return_amt.data[rc.pass_num - 1]);
+	}
 }
 
 void boid_physics_pass() {
@@ -277,6 +280,7 @@ void boid_physics_pass() {
 
 // apply damage to unit i
 // this will be a real calculation later, for now its simpler
+// only happens during physics pass
 void damage_calculation(uint i){
 
 	float friendly_fire = 1;
@@ -292,6 +296,7 @@ void damage_calculation(uint i){
 
 	if(-damage >= former_health){
 		//add to toDelete
+		boid_return.data[atomicAdd(return_amt.data[4], 1)] = int(i);
 	}
 
 }
@@ -302,7 +307,7 @@ void boid_loop_interior(int i){
 
 	if(i==index){ return;}
 
-	vec4 other_posvel = boid_posvel.data[i];
+	vec4 other_posvel = imageLoad(boid_posvel, get_pixel_pos(i));
 
 	float distance = distance(position, other_posvel.rg);
 
@@ -449,7 +454,7 @@ int get_bindex(){
 void storeImage(){
 
 
-	ivec2 pixel_pos = ivec2(index % rc.image_size, index / rc.image_size);
+	ivec2 pixel_pos = get_pixel_pos(index);
 	
 	imageStore(boid_data, pixel_pos, vec4(position.x, position.y, velocity.x, velocity.y));
 
@@ -457,6 +462,10 @@ void storeImage(){
 	barrier();
 
 	imageStore(health_out, pixel_pos, vec4(health.data[index], 0, 0, 0));
+}
+
+ivec2 get_pixel_pos(int i){
+	return ivec2(i % rc.image_size, i / rc.image_size);
 }
 
 //unpacks a floating point number from integer in input array
@@ -472,27 +481,18 @@ float unpackFloat(int index){
 //info is passed from rear of input buffer
 void selection_pass(){
 
-	if(gl_LocalInvocationIndex == 0){
 
-		
-		int passed_rect = int(pow(rc.image_size, 2));
 
-		//uses 4 total int slots
+	//passed from end
+	int passed_rect = int(pow(rc.image_size, 2));
 
-		loc_check[0] = vec2(unpackFloat(passed_rect - 4), unpackFloat(passed_rect - 3));
-		loc_check[1] = vec2(unpackFloat(passed_rect - 2), unpackFloat(passed_rect - 1));
-	}
-
-	barrier();
-	memoryBarrierShared();
-
+	
 	//check if pos is inside rect:
 
-	//if pos is greater than position,
-	//but also less than end
 
-	vec2 rect_pos = loc_check[0];
-	vec2 rect_end = loc_check[1];
+	//uses 4 total int slots
+	vec2 rect_pos = vec2(unpackFloat(passed_rect - 4), unpackFloat(passed_rect - 3));
+	vec2 rect_end = vec2(unpackFloat(passed_rect - 2), unpackFloat(passed_rect - 1));
 	
 	if(position.x > rect_pos.x && position.y > rect_pos.y && position.x < rect_end.x && position.y < rect_end.y && faction.data[index] % 2 == 0){
 
